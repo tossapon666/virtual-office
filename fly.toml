@@ -1,0 +1,31 @@
+# Fly.io config (deploy with: fly launch / fly deploy)
+# Uses the Dockerfile in this folder. For persistent SQLite/uploads, create & mount a volume:
+#   fly volumes create vo_data --size 1
+# and set OFFICE_DB=/data/office.db OFFICE_UPLOADS=/data/uploads
+app = "virtual-office"
+primary_region = "sin"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "5100"
+  OFFICE_BEHIND_PROXY = "1"
+  OFFICE_SECURE_COOKIE = "1"
+
+[http_service]
+  internal_port = 5100
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  memory = "256mb"
+  cpu_kind = "shared"
+  cpus = 1
+
+# Uncomment after creating a volume for persistence:
+# [mounts]
+#   source = "vo_data"
+#   destination = "/data"

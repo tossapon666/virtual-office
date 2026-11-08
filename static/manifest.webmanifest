@@ -1,0 +1,32 @@
+{
+  "name": "Virtual Office — Sci-Fi Anime Core",
+  "short_name": "Virtual Office",
+  "description": "ออฟฟิศเสมือนสไตล์ไซไฟที่มีทีม AI ช่วยดูแลงาน เอกสาร ปฏิทิน และสั่งงานด้วยภาษาธรรมชาติ",
+  "lang": "th",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#060914",
+  "theme_color": "#060914",
+  "icons": [
+    {
+      "src": "/static/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

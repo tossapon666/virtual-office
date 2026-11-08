@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: virtual-office
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python serve_online.py
+    healthCheckPath: /
+    envVars:
+      - key: OFFICE_SECRET
+        generateValue: true
+      - key: OFFICE_SECURE_COOKIE
+        value: "1"
+      - key: OFFICE_BEHIND_PROXY
+        value: "1"
+      - key: PYTHON_VERSION
+        value: 3.12.10
+    # FREE tier notes:
+    # - Service may "spin down" after inactivity (first load can take ~30-60s).
+    # - Filesystem is EPHEMERAL on free: SQLite (office.db) and uploads/ can reset on
+    #   restart/redeploy/spin cycles. For real persistent data use a Render Disk (paid)
+    #   and set OFFICE_DB/OFFICE_UPLOADS to the disk mount, or migrate to an external DB.

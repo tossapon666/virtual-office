@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#060914">
+  <title>Virtual Office · Sci-Fi Anime Core</title>
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
+  <link rel="icon" href="{{ url_for('static', filename='icon.svg') }}" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon.svg') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Noto+Serif+Thai:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="side-brand">
+      <span class="brand-mark">VO</span>
+      <div>
+        <strong>Virtual Office</strong>
+        <span>ออฟฟิศเสมือน</span>
+      </div>
+    </div>
+
+    <nav class="side-nav" aria-label="เมนูหลัก">
+      <button class="nav-item active" data-action="nav" data-view="office">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>ศูนย์บัญชาการ</span>
+      </button>
+      <button class="nav-item" data-action="nav" data-view="tasks">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 5h11M9 12h11M9 19h11M4 5l1.2 1.2L7.5 4M4 12l1.2 1.2L7.5 11M4 19l1.2 1.2L7.5 18" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>งานและแจ้งเตือน</span>
+        <em class="nav-badge" id="navTaskBadge" hidden>0</em>
+      </button>
+      <button class="nav-item" data-action="nav" data-view="calendar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18" stroke-linecap="round"/></svg>
+        <span>ปฏิทิน</span>
+      </button>
+      <button class="nav-item" data-action="nav" data-view="docs">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" stroke-linejoin="round"/></svg>
+        <span>ศูนย์เอกสาร</span>
+      </button>
+      <button class="nav-item" data-action="nav" data-view="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        <span>แดชบอร์ด</span>
+      </button>
+      <button class="nav-item" data-action="nav" data-view="activity">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 12h4l3 8 4-16 3 8h4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>กิจกรรม</span>
+      </button>
+    </nav>
+
+    <div class="side-foot">
+      <div class="team-status">
+        <span class="pulse-dot"></span>
+        <div>
+          <strong id="sideTeamCount">ทีม AI 5 คน</strong>
+          <span id="aiModeChip">โหมดอัตโนมัติ</span>
+        </div>
+      </div>
+      <button class="side-user" data-action="profile-menu">
+        <span class="user-avatar" id="sideUserAvatar">ผ</span>
+        <span class="user-meta">
+          <strong id="sideUserName">ผู้จัดการ</strong>
+          <small>เจ้าของออฟฟิศ</small>
+        </span>
+        <span class="dots">⋯</span>
+      </button>
+    </div>
+  </aside>
+
+  <div class="main-area">
+    <header class="topbar">
+      <button class="icon-btn menu-btn" data-action="toggle-sidebar" aria-label="เปิดเมนู">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/></svg>
+      </button>
+      <div class="topbar-title">
+        <h1 id="topTitle">ออฟฟิศเสมือน</h1>
+        <p id="topDate">—</p>
+      </div>
+      <div class="topbar-actions">
+        <button class="date-chip" data-action="nav" data-view="calendar">
+          <span id="todayChip">วันนี้</span>
+        </button>
+        <div class="bell-wrap">
+          <button class="icon-btn bell-btn" data-action="toggle-notifications" aria-label="การแจ้งเตือน">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 9a6 6 0 1 0-12 0c0 5-2 6-2 6h16s-2-1-2-6M10 20a2 2 0 0 0 4 0" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="bell-badge" id="bellBadge" hidden>0</span>
+          </button>
+          <div class="notif-pop" id="notifPop" hidden>
+            <div class="notif-head">
+              <strong>การแจ้งเตือน</strong>
+              <button class="link-btn" data-action="mark-all-read">อ่านทั้งหมด</button>
+            </div>
+            <div class="notif-list" id="notifList"></div>
+            <div class="notif-foot">
+              <button class="link-btn" data-action="enable-browser-notif">🔔 เปิดแจ้งเตือนบนเบราว์เซอร์</button>
+            </div>
+          </div>
+        </div>
+        <button class="profile-chip" data-action="profile-menu">
+          <span class="user-avatar" id="topUserAvatar">ผ</span>
+          <span id="topUserName">ผู้จัดการ</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="profile-pop" id="profilePop" hidden>
+          <div class="profile-pop-head">
+            <span class="user-avatar lg" id="popUserAvatar">ผ</span>
+            <div><strong id="popUserName">ผู้จัดการ</strong><small id="popUserRole">เจ้าของออฟฟิศ</small></div>
+          </div>
+          <button data-action="change-password">🔑 เปลี่ยนรหัสผ่าน</button>
+          <a href="/api/backup" download>💾 สำรองข้อมูล (JSON)</a>
+          <button data-action="enable-browser-notif">🔔 เปิดแจ้งเตือนเบราว์เซอร์</button>
+          <button class="danger" data-action="logout">↪ ออกจากระบบ</button>
+        </div>
+      </div>
+    </header>
+
+    <main id="view" class="view" tabindex="-1"></main>
+  </div>
+</div>
+
+<div class="sidebar-scrim" id="sidebarScrim" data-action="toggle-sidebar" hidden></div>
+<div id="modalRoot"></div>
+<div id="toastRoot" class="toast-root"></div>
+
+<script src="{{ url_for('static', filename='js/core.js') }}"></script>
+<script src="{{ url_for('static', filename='js/views.js') }}"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modals.js') }}"></script>
+<script src="{{ url_for('static', filename='js/agent.js') }}"></script>
+<script src="{{ url_for('static', filename='js/events.js') }}"></script>
+</body>
+</html>

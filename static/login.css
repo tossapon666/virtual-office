@@ -1,0 +1,137 @@
+:root {
+  --ink: #eaf6ff;
+  --muted: #9ab2d6;
+  --line: rgba(124,196,255,.22);
+  --paper: #060914;
+  --card: rgba(13, 20, 46, .78);
+  --brand: #22d3ee;
+  --violet: #a78bfa;
+  --pink: #f472b6;
+  --radius: 20px;
+  --shadow: 0 30px 70px -35px rgba(0,0,0,.9), 0 0 0 1px rgba(124,196,255,.14), 0 0 40px -24px rgba(34,211,238,.2);
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: "IBM Plex Sans Thai", "Noto Sans Thai", "Leelawadee UI", "Segoe UI", sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(1000px 700px at 10% -10%, rgba(167,139,250,.2), transparent 55%),
+    radial-gradient(900px 600px at 100% 10%, rgba(34,211,238,.16), transparent 55%),
+    linear-gradient(180deg, #070b18, #04060e);
+  -webkit-font-smoothing: antialiased;
+}
+.login-shell { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); }
+
+.brand-panel {
+  position: relative; overflow: hidden; padding: 44px 56px; color: #eaf6ff;
+  background:
+    radial-gradient(700px 400px at 20% 0%, rgba(167,139,250,.22), transparent 60%),
+    radial-gradient(600px 400px at 100% 100%, rgba(34,211,238,.18), transparent 60%),
+    linear-gradient(160deg, rgba(18,26,58,.9), rgba(7,10,24,.96));
+  border-right: 1px solid rgba(124,196,255,.16);
+  display: flex; flex-direction: column; gap: 24px;
+}
+.brand-panel::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(124,196,255,.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124,196,255,.05) 1px, transparent 1px);
+  background-size: 34px 34px; opacity: .7;
+}
+.brand-top { display: flex; align-items: center; gap: 12px; position: relative; z-index: 1; }
+.brand-mark {
+  display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 13px;
+  background: linear-gradient(140deg, #67e8f9, #22d3ee 45%, #a78bfa); color: #041225; font-weight: 800; font-size: 15px;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.25), 0 10px 28px -10px rgba(34,211,238,.85), 0 0 26px -8px rgba(167,139,250,.7);
+}
+.brand-name { font-weight: 600; letter-spacing: .2px; font-size: 16px; color: #fff; }
+.brand-copy { position: relative; z-index: 1; margin-top: 8px; max-width: 540px; }
+.eyebrow {
+  display: inline-block; margin: 0 0 14px; padding: 6px 14px; border-radius: 999px; font-size: 11.5px; letter-spacing: .14em;
+  color: #cffafe; border: 1px solid rgba(103,232,249,.28); background: rgba(34,211,238,.1);
+  box-shadow: 0 0 18px -10px rgba(34,211,238,.7);
+}
+.brand-copy h1 { margin: 0 0 16px; font-family: "Noto Serif Thai", "IBM Plex Sans Thai", serif; font-size: clamp(32px, 4vw, 52px); line-height: 1.2; color: #fff; text-shadow: 0 0 30px rgba(167,139,250,.2); }
+.brand-sub { margin: 0; color: #b7d0f0; font-size: 15px; line-height: 1.75; max-width: 480px; }
+
+/* sci-fi scene */
+.office-scene {
+  position: relative; z-index: 1; margin-top: auto; height: 240px; border-radius: 22px; overflow: hidden;
+  border: 1px solid rgba(124,196,255,.2);
+  background: linear-gradient(180deg, rgba(167,139,250,.12), rgba(8,12,28,.9));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 0 40px -24px rgba(34,211,238,.35);
+}
+.scene-grid {
+  position: absolute; inset: 0;
+  background-image: linear-gradient(rgba(103,232,249,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(103,232,249,.08) 1px, transparent 1px);
+  background-size: 28px 28px; transform: perspective(500px) rotateX(58deg) scale(1.8); transform-origin: bottom; top: 30%;
+}
+.scene-holo {
+  position: absolute; left: 50%; top: 18px; transform: translateX(-50%); width: 150px; height: 70px; border-radius: 12px;
+  background: linear-gradient(180deg, rgba(167,139,250,.28), rgba(34,211,238,.12));
+  border: 1px solid rgba(167,139,250,.4); box-shadow: 0 0 24px rgba(167,139,250,.25);
+}
+.scene-holo::after { content: ""; position: absolute; left: 14px; right: 14px; top: 14px; height: 4px; border-radius: 99px; background: rgba(103,232,249,.5); box-shadow: 0 10px 0 rgba(167,139,250,.35), 0 20px 0 rgba(244,114,182,.25), 0 30px 0 rgba(52,211,153,.2); }
+.scene-floor { position: absolute; left: 0; right: 0; bottom: 0; height: 44px; background: linear-gradient(180deg, rgba(124,196,255,.06), rgba(8,12,28,.7)); border-top: 1px solid rgba(124,196,255,.14); }
+.scene-desk { position: absolute; bottom: 30px; display: flex; flex-direction: column; align-items: center; animation: bob 5.5s ease-in-out infinite; }
+.scene-desk i { width: 48px; height: 10px; margin-top: -2px; border-radius: 5px; background: linear-gradient(90deg, rgba(167,139,250,.35), rgba(34,211,238,.25)); border: 1px solid rgba(124,196,255,.2); box-shadow: 0 0 14px -6px rgba(34,211,238,.5); }
+.scene-avatar { font-size: 30px; filter: drop-shadow(0 0 10px rgba(244,114,182,.35)); }
+.scene-desk.d1 { left: 8%; animation-delay: 0s; }
+.scene-desk.d2 { left: 30%; animation-delay: .6s; }
+.scene-desk.d3 { left: 54%; animation-delay: 1.2s; }
+.scene-desk.d4 { left: 76%; animation-delay: 1.8s; }
+.brand-foot { position: relative; z-index: 1; margin: 0; font-size: 12.5px; color: #89a7d1; letter-spacing: .01em; }
+
+/* form side */
+.form-panel {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 32px 32px;
+  background:
+    radial-gradient(700px 420px at 100% 0%, rgba(34,211,238,.08), transparent 60%),
+    linear-gradient(180deg, rgba(8,12,28,.5), rgba(6,9,20,.7));
+}
+.login-card {
+  width: min(410px, 100%); background: var(--card); border: 1px solid rgba(124,196,255,.22); border-radius: 26px;
+  padding: 38px 36px 32px; box-shadow: var(--shadow); backdrop-filter: blur(14px);
+}
+.mobile-brand { display: none; }
+.login-card h2 { margin: 0 0 6px; font-family: "Noto Serif Thai", serif; font-size: 27px; color: #fff; text-shadow: 0 0 20px rgba(34,211,238,.15); }
+.muted { color: var(--muted); font-size: 14px; margin: 0 0 26px; }
+.login-card label { display: block; font-size: 13px; font-weight: 600; margin: 0 0 7px; color: #b7d0f0; }
+.login-card input {
+  width: 100%; padding: 13px 15px; border-radius: 13px; border: 1px solid rgba(124,196,255,.22);
+  background: rgba(124,196,255,.06); font: inherit; font-size: 15px; color: var(--ink); outline: none;
+  transition: border-color .18s, box-shadow .18s, background .18s;
+}
+.login-card input:focus { border-color: rgba(103,232,249,.45); background: rgba(124,196,255,.09); box-shadow: 0 0 0 4px rgba(34,211,238,.12); }
+.login-card input[name="username"] { margin-bottom: 18px; }
+.password-wrap { position: relative; }
+.password-wrap input { padding-right: 48px; }
+.password-wrap button {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: 0; background: transparent;
+  font-size: 16px; cursor: pointer; padding: 8px; border-radius: 8px; opacity: .7; color: #c9ddf5;
+}
+.password-wrap button:hover { opacity: 1; background: rgba(124,196,255,.1); }
+.btn-primary {
+  width: 100%; margin-top: 24px; padding: 14px; border: 1px solid rgba(255,255,255,.18); border-radius: 14px;
+  background: linear-gradient(140deg, #22d3ee, #0891b2 55%, #7c3aed); color: #041019; font: inherit; font-weight: 700; font-size: 15.5px;
+  cursor: pointer; box-shadow: 0 0 0 1px rgba(103,232,249,.2), 0 16px 34px -18px rgba(34,211,238,.75), 0 0 26px -14px rgba(167,139,250,.55);
+  transition: transform .15s, filter .15s;
+}
+.btn-primary:hover { transform: translateY(-1px); filter: brightness(1.06); }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { opacity: .7; cursor: wait; transform: none; }
+.error { margin: 16px 0 0; padding: 11px 14px; border-radius: 12px; background: rgba(251,113,133,.12); border: 1px solid rgba(251,113,133,.28); color: #fecdd3; font-size: 13.5px; }
+.hint { margin-top: 24px; padding: 14px 16px; border-radius: 14px; background: rgba(124,196,255,.06); border: 1px dashed rgba(124,196,255,.22); font-size: 12.5px; color: #b7d0f0; line-height: 1.7; }
+.hint strong { color: #cffafe; }
+.hint span { display: block; color: #89a7d1; }
+.copyright { margin: 22px 0 0; font-size: 12px; color: #7390b8; }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@media (max-width: 900px) {
+  .login-shell { grid-template-columns: 1fr; }
+  .brand-panel { display: none; }
+  .form-panel { min-height: 100vh; padding: 28px 18px; }
+  .mobile-brand { display: flex; align-items: center; gap: 10px; font-weight: 600; margin-bottom: 26px; color: #fff; }
+  .login-card { padding: 30px 24px 26px; }
+}

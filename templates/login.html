@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#060914">
+  <title>เข้าสู่ระบบ · Virtual Office</title>
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
+  <link rel="icon" href="{{ url_for('static', filename='icon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='login.css') }}">
+</head>
+<body>
+  <main class="login-shell">
+    <section class="brand-panel">
+      <div class="brand-top">
+        <span class="brand-mark">VO</span>
+        <span class="brand-name">Virtual Office · Sci-Fi Core</span>
+      </div>
+      <div class="brand-copy">
+        <p class="eyebrow">ANIME 3D · HOLOGRAM OFFICE</p>
+        <h1>ออฟฟิศเสมือน<br>ทีม AI สาวไซไฟ<br>ทำงานแทนคุณ</h1>
+        <p class="brand-sub">ระบบโฮโลแกรมผู้จัดการ ควบคุม 5 แผนกด้วยคำสั่งภาษาธรรมชาติ — ดูงาน เอกสาร ปฏิทิน และแดชบอร์ดได้ในที่เดียว</p>
+      </div>
+      <div class="office-scene" aria-hidden="true">
+        <div class="scene-grid"></div>
+        <div class="scene-holo"></div>
+        <div class="scene-desk d1"><span class="scene-avatar">👩‍💼</span><i></i></div>
+        <div class="scene-desk d2"><span class="scene-avatar">👩‍💻</span><i></i></div>
+        <div class="scene-desk d3"><span class="scene-avatar">👩‍🏫</span><i></i></div>
+        <div class="scene-desk d4"><span class="scene-avatar">🧑‍🔬</span><i></i></div>
+        <div class="scene-floor"></div>
+      </div>
+      <p class="brand-foot">สั่งงานด้วยภาษาไทย · Ctrl+K · โฮโลแกรมอัปเดตตามข้อมูลจริง</p>
+    </section>
+
+    <section class="form-panel">
+      <form id="loginForm" class="login-card" autocomplete="on">
+        <div class="mobile-brand"><span class="brand-mark">VO</span> Virtual Office</div>
+        <h2>เข้าสู่ศูนย์บัญชาการ</h2>
+        <p class="muted">ยืนยันตัวตนเพื่อสั่งการทีม AI ของคุณ</p>
+
+        <label for="username">ชื่อผู้ใช้</label>
+        <input id="username" name="username" type="text" value="admin" autocomplete="username" required>
+
+        <label for="password">รหัสผ่าน</label>
+        <div class="password-wrap">
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+          <button type="button" id="togglePass" aria-label="แสดงรหัสผ่าน">👁️</button>
+        </div>
+
+        <p id="loginError" class="error" hidden></p>
+        <button type="submit" class="btn-primary" id="loginBtn">เข้าสู่ออฟฟิศ</button>
+
+        <div class="hint">
+          <strong>เข้าใช้ครั้งแรก:</strong> admin / admin123
+          <span>เปลี่ยนรหัสผ่านได้ในเมนูโปรไฟล์หลังเข้าใช้งาน</span>
+        </div>
+      </form>
+      <p class="copyright">Virtual Office · Sci-Fi Anime UI · ข้อมูลเก็บอยู่ในเครื่องของคุณ</p>
+    </section>
+  </main>
+
+  <script>
+    const form = document.getElementById('loginForm');
+    const errorBox = document.getElementById('loginError');
+    const btn = document.getElementById('loginBtn');
+    document.getElementById('togglePass').addEventListener('click', () => {
+      const input = document.getElementById('password');
+      input.type = input.type === 'password' ? 'text' : 'password';
+    });
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorBox.hidden = true;
+      btn.disabled = true;
+      btn.textContent = 'กำลังเชื่อมต่อระบบ…';
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: document.getElementById('username').value,
+            password: document.getElementById('password').value,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'เข้าสู่ระบบไม่สำเร็จ');
+        location.href = '/';
+      } catch (err) {
+        errorBox.textContent = err.message;
+        errorBox.hidden = false;
+        btn.disabled = false;
+        btn.textContent = 'เข้าสู่ออฟฟิศ';
+      }
+    });
+  </script>
+</body>
+</html>
