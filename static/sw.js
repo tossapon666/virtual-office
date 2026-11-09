@@ -1,4 +1,4 @@
-const CACHE = 'virtual-office-v11';
+const CACHE = 'virtual-office-v12';
 const ASSETS = [
   '/static/app.css',
   '/static/login.css',

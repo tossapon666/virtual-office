@@ -1,31 +1,58 @@
 # ทำให้ Virtual Office ออนไลน์ “ฟรี” (ปิดเครื่องนี้ก็ใช้ได้)
 
-> **ความจริงเรื่อง “ฟรี 100% + ปิดเครื่อง + ใช้ได้ทุกที่ + ข้อมูลไม่หาย”**  
-> - แอปนี้เก็บข้อมูลใน `office.db` (SQLite) + โฟลเดอร์ `uploads/` บนเครื่อง/เซิร์ฟเวอร์  
-> - โฮสต์ **ฟรี** ส่วนใหญ่ (เช่น Render free) ให้รันได้ แต่ **filesystem ไม่ถาวร** → ข้อมูลงาน/ไฟล์อาจหายเมื่อรีสตาร์ท/รีดีพลอย/สปินดาวน์ และ **อาจหลับเมื่อไม่ใช้งาน** (เปิดครั้งแรกช้า ~30–60 วินาที)  
-> - ถ้าต้องการข้อมูลถาวรจริง ต้องใช้ disk/volume (มักเสียเงิน) หรือย้ายฐานข้อมูล — **ผมเตรียมโค้ด/คอนฟิกให้พร้อมแล้ว** แต่ “ฟรี+ถาวร” มีข้อจำกัดของผู้ให้บริการ
+> สรุปสั้น: ใช้ **Render free** เป็นตัวรันแอป + **Turso** เก็บฐานข้อมูล + **Google Drive** เก็บไฟล์ + **GitHub Actions** ping กัน sleep  
+> รายละเอียดทุกขั้นตอนอยู่ใน [`DEPLOY_OPTIONS.md`](DEPLOY_OPTIONS.md)
 
-ผมทำฝั่งเครื่องนี้ให้พร้อมสุดแล้ว (คุณต้องทำแค่ขั้นตอนสมัคร/กด deploy บนเว็บ — ผมเข้าบัญชีคลาวด์ของคุณแทนไม่ได้)
+## ทำไมต้องทำแบบนี้
+Render free tier:
+- **หลับหลังไม่มีคนใช้ ~15 นาที** → เปิดครั้งแรกช้า (แก้ด้วย keep-alive ping)
+- **ดิสก์ชั่วคราว** → ข้อมูล/ไฟล์หายเมื่อ redeploy (แก้ด้วย Turso + Drive)
 
-## วิธีที่แนะนำ (ฟรี, ง่ายสุด): Render + GitHub (ไม่ต้องติดตั้ง git)
-ไฟล์พร้อมอัปโหลด: `C:\Users\torij\Downloads\virtual-office-deploy-ready.zip`
+## ขั้นตอนย่อ
 
-1. แตก `virtual-office-deploy-ready.zip` จะได้โฟลเดอร์ `virtual-office` (มี `render.yaml` พร้อม)
-2. สมัคร/ล็อกอิน **GitHub** https://github.com → กด **New repository** ตั้งชื่อ เช่น `virtual-office` → Create
-3. ใน repo ใหม่ กด **“uploading an existing file”** (หรือ Add file → Upload files) → ลาก **ไฟล์ทั้งหมดข้างใน**โฟลเดอร์ `virtual-office` ขึ้นไป → Commit  
-   - **ห้ามอัปโหลด:** `office.db`, `uploads/`, `.secret_key`, `.env` (ไฟล์ deploy-ready ที่ผมทำให้ไม่รวมสิ่งพวกนี้แล้ว)
-4. สมัคร/ล็อกอิน **Render** https://render.com → **New +** → **Blueprint** → Connect GitHub → เลือก repo `virtual-office` → Apply/Deploy
-5. รอ build เสร็จ จะได้ URL เช่น `https://virtual-office-xxxx.onrender.com` → เปิดได้จากทุกที่ แม้ปิดเครื่องนี้
-6. เข้าแอปด้วย `admin` / `admin123` แล้วไปที่ **โปรไฟล์ → เปลี่ยนรหัสผ่านทันที** (สำคัญมากเพราะเปิดสาธารณะ)
+### 1. ขึ้น GitHub
+- อัปโหลดไฟล์ในโฟลเดอร์ `virtual-office/` ขึ้น repo (ยกเว้น `office.db`, `uploads/`, `.secret_key`, `.env`)
+- repo ตัวอย่าง: `https://github.com/tossapon666/virtual-office`
 
-## ใช้งานได้ “ฟรี” ตอนนี้เลย (ชั่วคราว — ต้องเปิดเครื่องนี้)
-- ลิงก์สาธารณะ (กำลังรันอยู่): https://personnel-vbulletin-reads-jewel.trycloudflare.com
-- ใช้ได้ทุกที่ *ตราบเท่าที่เครื่องนี้เปิดและ tunnel/เซิร์ฟเวอร์ยังรัน* (ดับเมื่อปิดเครื่อง) — เหมาะทดสอบก่อน deploy ฟรี
+### 2. Deploy บน Render
+- https://render.com → **New + → Blueprint** → เลือก repo → Apply
+- รอ build → ได้ URL เช่น `https://virtual-office-ncvu.onrender.com`
 
-## ถ้าต้องการ “ฟรี + ข้อมูลไม่หายจริง”
-- ทางเลือกเชิงโครงสร้าง: (1) ใช้ Render Disk/volume (เสียเงิน) หรือ (2) แก้แอปให้ใช้ฐานข้อมูลภายนอกที่มี free tier แล้ว deploy — ต้องแก้โค้ดส่วน `db.py`/การเก็บไฟล์ (งานใหญ่กว่า). ถ้าคุณอยาก ผมช่วยวางแผน/ลงมือแก้ให้รองรับ Postgres ภายนอกได้
-- ทางเลือกฟรีแต่ต้องดูแลเอง: รันบนเครื่องที่เปิดทิ้งไว้ตลอด (เช่น mini PC/VPS ฟรีที่คุณมี) + เปิดพอร์ต/tunnel
+### 3. ตั้ง env
+| Key | Value |
+|---|---|
+| `TURSO_DATABASE_URL` | จาก Turso |
+| `TURSO_AUTH_TOKEN` | จาก Turso |
+| `OFFICE_SECRET` | ค่าสุ่มยาว |
+| `OFFICE_SECURE_COOKIE` | `1` |
+| `OFFICE_BEHIND_PROXY` | `1` |
+
+### 4. สร้าง Turso + ย้ายข้อมูล
+```powershell
+turso db create virtual-office
+turso db show virtual-office --url
+turso db tokens create virtual-office
+
+cd "C:\Users\torij\Documents\Default Project\virtual-office"
+$env:TURSO_DATABASE_URL = "libsql://<db>-<org>.turso.io"
+$env:TURSO_AUTH_TOKEN   = "<token>"
+python tools\migrate_to_turso.py --sqlite office.db --wipe
+```
+
+### 5. ตั้ง Google Drive
+- Google Cloud → เปิด Drive API → Service account → JSON key
+- แชร์โฟลเดอร์ Drive ให้ `client_email` เป็น Editor
+- ในแอป → **🗄️ ที่เก็บข้อมูล** → วาง JSON + Folder ID → บันทึก → ทดสอบ → อัปโหลดไฟล์เดิม
+
+### 6. กัน sleep
+- `.github/workflows/keepalive.yml` ping `/health` ทุก 5 นาที
+- ทางเลือก: UptimeRobot free ชี้ไปที่ `/health`
+
+### 7. ตรวจสอบ
+- `/health` → `{"ok": true}`
+- **🗄️ ที่เก็บข้อมูล** → badge **✅ Turso (ถาวร)**
+- สร้างงาน/อัปโหลดไฟล์ → รีสตาร์ท → ข้อมูลยังอยู่
 
 ## ความปลอดภัย
 - เปลี่ยนรหัสผ่าน `admin123` ทันทีหลังออนไลน์
-- อย่าเผย `OFFICE_SECRET` และ API token (เมนู `🛠️ UI/API`)
+- อย่าเผย `OFFICE_SECRET`, `TURSO_AUTH_TOKEN`, service account JSON, API token

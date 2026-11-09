@@ -17,7 +17,7 @@
 
 - **ออฟฟิศเสมือน** — แยกห้องตามแผนก มีตัวละครนั่งทำงาน คลิกห้องเพื่อดูข้อมูลแผนก คลิกตัวละครเพื่อคุยกับผู้ช่วย
 - **สั่งงานด้วยภาษาธรรมชาติ** — ช่องสั่งงานบนหน้าแรก (กด `Ctrl`+`K` เพื่อโฟกัส) พิมพ์ภาษาไทยแล้วระบบสร้าง/ปิด/เลื่อนงานให้ทันที
-- **ทีม AI 5 คน** — เลขาธิการส่วนตัว, นักบัญชี, เจ้าหน้าที่เอกสาร, ผู้ดูแลคลังเอกสาร, ธุรการปฏิบัติการ
+- **ทีม AI 6 คน** — เลขาธิการส่วนตัว, นักบัญชี, เจ้าหน้าที่เอกสาร, ผู้ดูแลคลังเอกสาร, ธุรการปฏิบัติการ, เจ้าหน้าที่สต็อก
 - **งานและแจ้งเตือน** — เพิ่ม/แก้ไข/ปิดงาน กำหนดผู้รับผิดชอบ วันส่ง ความสำคัญ งานซ้ำ และติดตามงานเกินกำหนด
 - **แจ้งเตือนอัตโนมัติ** — ทีม AI ตรวจงานทุกครั้งที่เปิดใช้งาน และทุก 45 วินาที สร้างแจ้งเตือนงานใกล้ถึงกำหนด/เกินกำหนด/สรุปประจำวัน
 - **ปฏิทิน** — ดูงานรายเดือน คลิกวันเพื่อดูและเพิ่มงาน
@@ -85,9 +85,16 @@ set AI_MODEL=gpt-4o-mini
 
 ## ข้อมูลเก็บที่ไหน
 
+ค่าเริ่มต้น (รันในเครื่อง):
 - ฐานข้อมูล: `office.db` (SQLite)
 - ไฟล์แนบ: โฟลเดอร์ `uploads/`
 - สำรองข้อมูล: คัดลอกทั้งสองรายการ หรือใช้เมนู “สำรองข้อมูล (JSON)”
+
+เมื่อออนไลน์ (แนะนำ):
+- **ฐานข้อมูล → Turso** ตั้ง `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN` แล้วแอปจะใช้ libSQL แทน `office.db` อัตโนมัติ
+- **ไฟล์แนบ → Google Drive** ตั้งค่าที่เมนู **🗄️ ที่เก็บข้อมูล** (service account JSON + Folder ID)
+- ดูขั้นตอนทั้งหมดใน [`DEPLOY_OPTIONS.md`](DEPLOY_OPTIONS.md)
+- ตรวจสถานะได้ที่ `GET /api/system/status` หรือดู badge ในเมนู **🗄️ ที่เก็บข้อมูล**
 
 ## ขึ้นออนไลน์ให้ใช้ได้ทุกที่
 
@@ -100,6 +107,7 @@ cloudflared tunnel --url http://localhost:5100
 จะได้ URL แบบ `https://....trycloudflare.com` ใช้เปิดจากมือถือได้ทันที (เหมาะสำหรับทดลอง)
 
 สำหรับใช้งานจริงระยะยาว แนะนำ:
+- **Render free + Turso (DB) + Google Drive (ไฟล์) + keep-alive ping** — ดู [`DEPLOY_OPTIONS.md`](DEPLOY_OPTIONS.md)
 - VPS ขนาดเล็ก + systemd/NSSM รัน `app.py` หลัง reverse proxy (Caddy/Nginx) + HTTPS
 - หรือแพลตฟอร์มที่มี persistent disk เช่น Railway/Render/Fly.io
 - ฐานข้อมูล SQLite เหมาะกับผู้ใช้คนเดียว/ทีมเล็ก หากต้องการหลายเครื่องพร้อมกันมาก ๆ ค่อยย้ายไป Postgres
@@ -109,8 +117,11 @@ cloudflared tunnel --url http://localhost:5100
 ```
 virtual-office/
 ├─ app.py            # Flask routes + REST API
-├─ db.py             # schema + ข้อมูลตั้งต้น
+├─ db.py             # schema + Turso/libSQL adapter + ข้อมูลตั้งต้น
 ├─ agents.py         # สมองทีม AI / แจ้งเตือน / แชท / ตัวแยกคำสั่งภาษาไทย
+├─ tools/
+│  └─ migrate_to_turso.py   # ย้าย SQLite → Turso (ครั้งเดียว)
+├─ .github/workflows/keepalive.yml  # ping กัน Render sleep
 ├─ templates/
 │  ├─ index.html
 │  └─ login.html
@@ -118,8 +129,8 @@ virtual-office/
 │  ├─ app.css, login.css
 │  ├─ js/ (core, views, dashboard, modals, agent, events)
 │  ├─ manifest.webmanifest, sw.js, icon*
-├─ uploads/          # ไฟล์แนบ (สร้างอัตโนมัติ)
-├─ office.db         # ฐานข้อมูล (สร้างอัตโนมัติ)
+├─ uploads/          # ไฟล์แนบ (สร้างอัตโนมัติ / สำเนา cache)
+├─ office.db         # ฐานข้อมูล (สร้างอัตโนมัติเมื่อไม่ใช้ Turso)
 └─ run.bat
 ```
 

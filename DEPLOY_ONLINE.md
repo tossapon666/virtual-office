@@ -24,8 +24,9 @@ netsh advfirewall firewall add rule name="Virtual Office 5100" dir=in action=all
 - ติดตั้ง: `pip install -r requirements.txt`
 - รัน production: `python serve_online.py` (หรือ `waitress-serve --host=0.0.0.0 --port=$PORT app:app`)
 - ตัวแปรแวดล้อมที่ควรตั้ง: `OFFICE_SECRET` (secret key), `OFFICE_PASSWORD` (รหัสผ่านเริ่มต้น/seed), `PORT`
+- **ข้อมูลถาวร (แนะนำ):** ตั้ง `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN` เพื่อเก็บ DB บน Turso และตั้ง Google Drive ในเมนู **🗄️ ที่เก็บข้อมูล** สำหรับไฟล์อัปโหลด — ดู [`DEPLOY_OPTIONS.md`](DEPLOY_OPTIONS.md)
 - แพลตฟอร์มที่รองรับ Python (Render/Railway/Fly.io/VPS) ใช้ start command: `python serve_online.py`
-- ข้อควรระวัง: SQLite (`office.db`) และโฟลเดอร์ `uploads/` เป็นไฟล์ในเครื่อง — บนโฮสต์ที่ filesystem ไม่ถาวร ข้อมูลอาจหายเมื่อรีสตาร์ท; ควรใช้ดิสก์ถาวร/วอลุ่ม หรือย้ายไปฐานข้อมูลภายนอกถ้าต้องการถาวรจริง
+- ข้อควรระวัง: ถ้าไม่ตั้ง Turso/Drive ข้อมูล `office.db` และ `uploads/` จะอยู่ใน filesystem ของโฮสต์ — บนโฮสต์ที่ filesystem ไม่ถาวร ข้อมูลอาจหายเมื่อรีสตาร์ท
 
 ## 4) ให้ AI ตัวอื่นจัดการหน้าแอปได้ (ข้ามอินเทอร์เน็ต)
 เมื่อออนไลน์แล้ว ให้ AI เรียก `https://<โดเมนของคุณ>/api/ui-config` พร้อม header `X-Office-Token: <token>` (ดู token ในเมนู `🛠️ UI/API`)

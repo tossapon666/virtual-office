@@ -1,0 +1,37 @@
+name: Keep Virtual Office awake
+
+# Render free tier จะ sleep หลังไม่มีคนใช้งาน ~15 นาที
+# workflow นี้จะ ping /health ทุก 5 นาทีเพื่อลด cold start
+# หมายเหตุ: GitHub อาจหน่วง cron ได้หลายนาที และ scheduled workflow
+# จะหยุดอัตโนมัติถ้า repo ไม่มี commit/activity เกิน 60 วัน
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Ping /health
+        run: |
+          URL="https://virtual-office-ncvu.onrender.com/health"
+          echo "Pinging $URL"
+          for i in 1 2 3; do
+            code=$(curl -s -o /tmp/health.json -w "%{http_code}" --max-time 90 "$URL" || true)
+            echo "attempt $i -> HTTP $code"
+            cat /tmp/health.json || true
+            echo
+            if [ "$code" = "200" ]; then
+              echo "OK"
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "Keep-alive ping failed"
+          exit 1

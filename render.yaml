@@ -5,7 +5,7 @@ services:
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: python serve_online.py
-    healthCheckPath: /
+    healthCheckPath: /health
     envVars:
       - key: OFFICE_SECRET
         generateValue: true
@@ -15,8 +15,15 @@ services:
         value: "1"
       - key: PYTHON_VERSION
         value: 3.12.10
+      # ฐานข้อมูลถาวรบน Turso (สร้างที่ https://turso.tech)
+      # ใส่ค่าผ่าน Render Dashboard > Environment (sync: false = ไม่เก็บใน repo)
+      - key: TURSO_DATABASE_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false
     # FREE tier notes:
     # - Service may "spin down" after inactivity (first load can take ~30-60s).
-    # - Filesystem is EPHEMERAL on free: SQLite (office.db) and uploads/ can reset on
-    #   restart/redeploy/spin cycles. For real persistent data use a Render Disk (paid)
-    #   and set OFFICE_DB/OFFICE_UPLOADS to the disk mount, or migrate to an external DB.
+    #   ใช้ .github/workflows/keepalive.yml หรือ UptimeRobot ping /health เพื่อลด cold start
+    # - Filesystem is EPHEMERAL on free: office.db และ uploads/ อาจรีเซ็ตเมื่อ restart/redeploy
+    #   แก้ด้วย TURSO_DATABASE_URL (DB ถาวร) + Google Drive storage (ไฟล์ถาวร)
+    #   ตั้งค่าที่เมนู "🗄️ ที่เก็บข้อมูล" ในแอป

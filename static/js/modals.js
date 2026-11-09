@@ -37,14 +37,6 @@ function confirmDialog(message, onConfirm, opts = {}) {
     <div class="modal-body">
       <p style="font-size:13.5px;line-height:1.75;color:#44564f;margin:0">${esc(message)}</p>
     </div>
-      <div class="agent-section" style="margin-bottom:0">
-        <h4>🔌 การเชื่อมต่อ (Integrations) — นำไปทำต่อได้</h4>
-        <div class="mini-empty">เชื่อม LINE / Google Sheets / Webhook แยกตามแผนก · ส่งออก CSV งานของแผนกได้</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-          <button class="btn btn-sm btn-soft" data-action="dept-integrations" data-id="${d.id}">🔌 ตั้งค่าการเชื่อมต่อ</button>
-          <a class="btn btn-sm" href="/api/departments/${d.id}/export/tasks.csv">⬇️ ส่งออกงาน (CSV/Sheets)</a>
-        </div>
-      </div>
     <div class="modal-foot">
       <button class="btn" data-action="close-modal">ยกเลิก</button>
       <button class="btn ${opts.danger === false ? 'btn-primary' : 'btn-danger'}" data-action="confirm-run">
@@ -119,15 +111,7 @@ function openTaskModal(task = null, preset = {}) {
           </div>` : ''}
         </div>
       </div>
-        <div class="agent-section" style="margin-bottom:0">
-        <h4>🔌 การเชื่อมต่อ (Integrations) — นำไปทำต่อได้</h4>
-        <div class="mini-empty">เชื่อม LINE / Google Sheets / Webhook แยกตามแผนก · ส่งออก CSV งานของแผนกได้</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-          <button class="btn btn-sm btn-soft" data-action="dept-integrations" data-id="${d.id}">🔌 ตั้งค่าการเชื่อมต่อ</button>
-          <a class="btn btn-sm" href="/api/departments/${d.id}/export/tasks.csv">⬇️ ส่งออกงาน (CSV/Sheets)</a>
-        </div>
-      </div>
-    <div class="modal-foot">
+      <div class="modal-foot">
         <button type="button" class="btn" data-action="close-modal">ยกเลิก</button>
         <button type="submit" class="btn btn-primary">${editing ? 'บันทึกการแก้ไข' : 'เพิ่มงาน'}</button>
       </div>
@@ -221,15 +205,7 @@ function openUploadModal(file = null) {
           </div>
         </div>
       </div>
-        <div class="agent-section" style="margin-bottom:0">
-        <h4>🔌 การเชื่อมต่อ (Integrations) — นำไปทำต่อได้</h4>
-        <div class="mini-empty">เชื่อม LINE / Google Sheets / Webhook แยกตามแผนก · ส่งออก CSV งานของแผนกได้</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-          <button class="btn btn-sm btn-soft" data-action="dept-integrations" data-id="${d.id}">🔌 ตั้งค่าการเชื่อมต่อ</button>
-          <a class="btn btn-sm" href="/api/departments/${d.id}/export/tasks.csv">⬇️ ส่งออกงาน (CSV/Sheets)</a>
-        </div>
-      </div>
-    <div class="modal-foot">
+      <div class="modal-foot">
         <button type="button" class="btn" data-action="close-modal">ยกเลิก</button>
         <button type="submit" class="btn btn-primary">อัปโหลด</button>
       </div>
@@ -305,7 +281,7 @@ function openDeptModal(id) {
           : '<div class="mini-empty">ไม่มีงานค้างในแผนกนี้</div>'}
       </div>
 
-      <div class="agent-section" style="margin-bottom:0">
+      <div class="agent-section">
         <h4>เอกสารในแผนก (${docs.length})</h4>
         ${docs.length ? `<div class="mini-list">${docs.slice(0, 5).map((doc) => {
           const meta = fileMeta(doc.filename);
@@ -316,15 +292,16 @@ function openDeptModal(id) {
           </div>`;
         }).join('')}</div>` : '<div class="mini-empty">ยังไม่มีเอกสารในแผนกนี้</div>'}
       </div>
-    </div>
+
       <div class="agent-section" style="margin-bottom:0">
-        <h4>🔌 การเชื่อมต่อ (Integrations) — นำไปทำต่อได้</h4>
-        <div class="mini-empty">เชื่อม LINE / Google Sheets / Webhook แยกตามแผนก · ส่งออก CSV งานของแผนกได้</div>
+        <h4>🔌 การเชื่อมต่อของแผนก</h4>
+        <div class="mini-empty">เชื่อม LINE / Google Sheets / Webhook เฉพาะแผนกนี้</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-          <button class="btn btn-sm btn-soft" data-action="dept-integrations" data-id="${d.id}">🔌 ตั้งค่าการเชื่อมต่อ</button>
-          <a class="btn btn-sm" href="/api/departments/${d.id}/export/tasks.csv">⬇️ ส่งออกงาน (CSV/Sheets)</a>
+          <button class="btn btn-sm btn-soft" data-action="dept-integrations" data-id="${d.id}">🔌 ตั้งค่า LINE / Sheets / Webhook</button>
+          <a class="btn btn-sm" href="/api/departments/${d.id}/export/tasks.csv">⬇️ ส่งออกงาน (CSV)</a>
         </div>
       </div>
+    </div>
     <div class="modal-foot">
       <button class="btn" data-action="close-modal">ปิด</button>
       <button class="btn btn-primary" data-action="add-task" data-dept="${d.id}">${I.plus} เพิ่มงานให้แผนก</button>
@@ -342,14 +319,6 @@ function openDayModal(dateStr) {
         ? `<div class="task-list">${tasks.map(taskRowHTML).join('')}</div>`
         : '<div class="empty-state" style="padding:36px 16px"><span class="emoji">📅</span><strong>ไม่มีงานในวันนี้</strong><p>เพิ่มงานใหม่หรือเลือกวันอื่นจากปฏิทิน</p></div>'}
     </div>
-      <div class="agent-section" style="margin-bottom:0">
-        <h4>🔌 การเชื่อมต่อ (Integrations) — นำไปทำต่อได้</h4>
-        <div class="mini-empty">เชื่อม LINE / Google Sheets / Webhook แยกตามแผนก · ส่งออก CSV งานของแผนกได้</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-          <button class="btn btn-sm btn-soft" data-action="dept-integrations" data-id="${d.id}">🔌 ตั้งค่าการเชื่อมต่อ</button>
-          <a class="btn btn-sm" href="/api/departments/${d.id}/export/tasks.csv">⬇️ ส่งออกงาน (CSV/Sheets)</a>
-        </div>
-      </div>
     <div class="modal-foot">
       <button class="btn" data-action="close-modal">ปิด</button>
       <button class="btn btn-primary" data-action="add-task" data-date="${dateStr}">${I.plus} เพิ่มงานวันนี้</button>
@@ -377,15 +346,7 @@ function openPasswordModal() {
           </div>
         </div>
       </div>
-        <div class="agent-section" style="margin-bottom:0">
-        <h4>🔌 การเชื่อมต่อ (Integrations) — นำไปทำต่อได้</h4>
-        <div class="mini-empty">เชื่อม LINE / Google Sheets / Webhook แยกตามแผนก · ส่งออก CSV งานของแผนกได้</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-          <button class="btn btn-sm btn-soft" data-action="dept-integrations" data-id="${d.id}">🔌 ตั้งค่าการเชื่อมต่อ</button>
-          <a class="btn btn-sm" href="/api/departments/${d.id}/export/tasks.csv">⬇️ ส่งออกงาน (CSV/Sheets)</a>
-        </div>
-      </div>
-    <div class="modal-foot">
+      <div class="modal-foot">
         <button type="button" class="btn" data-action="close-modal">ยกเลิก</button>
         <button type="submit" class="btn btn-primary">บันทึกรหัสใหม่</button>
       </div>
@@ -445,6 +406,13 @@ async function openUiConfigModal() {
     note: 'ข้อความด้านล่าง...',
     rooms: { 'สำนักเลขา': { label: 'สำนักเลขา', visible: true, color: '#d97706' } }
   }, null, 2);
+  const depts = (state.data && state.data.departments) || [];
+  const deptRows = depts.map((d) => `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:6px 0;border-bottom:1px solid rgba(124,196,255,.08)">
+      <b style="min-width:150px">${esc(d.name)}${d.name_en ? ` <small style="opacity:.6">${esc(d.name_en)}</small>` : ''}</b>
+      <button class="btn btn-sm btn-soft" data-action="dept-integrations" data-id="${d.id}">🔌 ตั้งค่าการเชื่อมต่อ</button>
+      <a class="btn btn-sm" href="/api/departments/${d.id}/export/tasks.csv">⬇️ ส่งออกงาน (CSV/Sheets)</a>
+    </div>`).join('');
   openModal(`
     ${modalHead('จัดการหน้าแอป / API สำหรับ AI', 'AI ตัวอื่นหรือระบบภายนอกสามารถแก้ไขการแสดงผลหน้าแอปได้ผ่าน API (ปลอดภัย: ใช้ config ที่ตรวจสอบแล้ว)')}
     <form id="uiConfigForm">
@@ -473,10 +441,7 @@ async function openUiConfigModal() {
         <div class="agent-section" style="margin-bottom:0">
         <h4>🔌 การเชื่อมต่อ (Integrations) — นำไปทำต่อได้</h4>
         <div class="mini-empty">เชื่อม LINE / Google Sheets / Webhook แยกตามแผนก · ส่งออก CSV งานของแผนกได้</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-          <button class="btn btn-sm btn-soft" data-action="dept-integrations" data-id="${d.id}">🔌 ตั้งค่าการเชื่อมต่อ</button>
-          <a class="btn btn-sm" href="/api/departments/${d.id}/export/tasks.csv">⬇️ ส่งออกงาน (CSV/Sheets)</a>
-        </div>
+        <div style="margin-top:8px">${deptRows || '<div class="muted">ยังไม่มีแผนก</div>'}</div>
       </div>
     <div class="modal-foot">
         <button type="button" class="btn btn-ghost" data-action="close-modal">ปิด</button>
@@ -570,4 +535,115 @@ async function testIntegration(id, provider) {
   try { const res = await api(`/api/departments/${id}/integrations/test`, {method:'POST', body:{provider}});
     if (res.ok) toast('ทดสอบสำเร็จ ✅'); else toast('ทดสอบไม่สำเร็จ: '+JSON.stringify(res.results||{}), 'error');
   } catch(e){ toast(e.message,'error'); }
+}
+
+/* ---------------- storage (Turso + Google Drive) ---------------- */
+async function openStorageModal() {
+  let status = null;
+  let storage = null;
+  try { status = await api('/api/system/status'); } catch (e) { status = null; }
+  try { const r = await api('/api/storage'); storage = r.storage; }
+  catch (e) { toast(e.message, 'error'); }
+  const db = (status && status.db) || { mode: 'local', label: 'ไม่ทราบสถานะ', persistent: false };
+  const S = storage || {
+    enabled: false, folder_id: '', service_account_json: '',
+    service_account_set: false, sa_email: '', note: '',
+  };
+  const dbBadge = db.persistent
+    ? '<span class="pill" style="background:rgba(34,197,94,.16);color:#16a34a">✅ Turso (ถาวร)</span>'
+    : '<span class="pill" style="background:rgba(245,158,11,.16);color:#d97706">⚠️ SQLite (ชั่วคราว)</span>';
+  openModal(`
+    ${modalHead('ที่เก็บข้อมูลถาวร', 'ย้ายฐานข้อมูลไป Turso และไฟล์อัปโหลดไป Google Drive เพื่อให้ข้อมูลอยู่ถาวรแม้เซิร์ฟเวอร์รีสตาร์ท')}
+    <form id="storageForm">
+      <div class="modal-body">
+        <div class="field span-2">
+          <label>ฐานข้อมูล (Database)</label>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            ${dbBadge}
+            <span class="muted" style="font-size:12px">โหมด: ${esc(db.label || db.mode)}</span>
+          </div>
+          <div class="hint">เปิดโหมด Turso โดยตั้ง env <code>TURSO_DATABASE_URL</code> + <code>TURSO_AUTH_TOKEN</code> บนเซิร์ฟเวอร์ (Render) แล้ว Deploy ใหม่ — ดูวิธีใน <code>DEPLOY_OPTIONS.md</code></div>
+        </div>
+
+        <div class="field span-2">
+          <label class="check"><input type="checkbox" name="enabled" ${S.enabled ? 'checked' : ''}> เปิดใช้งาน Google Drive สำหรับเก็บไฟล์</label>
+          <div class="hint">เมื่อเปิด ไฟล์อัปโหลดใหม่จะถูกเก็บขึ้น Drive (และเก็บสำเนาในเครื่องด้วย) ดาวน์โหลด/พรีวิว/ลบ จะดึงจาก Drive อัตโนมัติถ้าไฟล์ในเครื่องหาย</div>
+        </div>
+
+        <div class="field span-2">
+          <label>Google Drive Folder ID (ทางเลือก)</label>
+          <input name="folder_id" value="${esc(S.folder_id || '')}" placeholder="เช่น 1AbCdEfGhIjKlMnOpQrStUvWxYz">
+          <div class="hint">สร้างโฟลเดอร์ใน Drive แล้วแชร์ให้ <code>client_email</code> ของ service account เป็น Editor · ถ้าเว้นว่างจะเก็บที่ My Drive ของ service account</div>
+        </div>
+
+        <div class="field span-2">
+          <label>Service account JSON ${S.service_account_set ? `(ตั้งค่าแล้ว: ${esc(S.sa_email || '')})` : ''}</label>
+          <textarea name="service_account_json" style="min-height:170px;font-family:monospace;font-size:11px;line-height:1.4" placeholder='วาง JSON ทั้งก้อน เช่น {"type":"service_account", ...}'>${S.service_account_set ? '********' : ''}</textarea>
+          <div class="hint">วางเฉพาะเมื่อต้องการเปลี่ยน · ค่า <code>********</code> หมายถึงใช้ค่าเดิมที่บันทึกไว้</div>
+        </div>
+
+        <div class="field span-2">
+          <label>หมายเหตุ</label>
+          <input name="note" value="${esc(S.note || '')}" maxlength="200" placeholder="เช่น โฟลเดอร์เอกสารบริษัท">
+        </div>
+
+        <div class="agent-section" style="margin-bottom:0">
+          <h4>เครื่องมือ</h4>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button type="button" class="btn btn-sm" data-action="storage-test">🔍 ทดสอบการเชื่อมต่อ Drive</button>
+            <button type="button" class="btn btn-sm" data-action="storage-migrate">⬆️ อัปโหลดไฟล์เดิมขึ้น Drive</button>
+          </div>
+          <div class="mini-empty" style="margin-top:8px">“อัปโหลดไฟล์เดิม” จะทยอยส่งไฟล์ที่มีในเครื่องแต่ยังไม่มีบน Drive (ครั้งละไม่เกิน 100 ไฟล์) — กดซ้ำได้</div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost" data-action="close-modal">ปิด</button>
+        <button type="submit" class="btn btn-primary">บันทึกที่เก็บข้อมูล</button>
+      </div>
+    </form>`, 'wide');
+}
+
+function storagePayload(form) {
+  const v = (n) => form.querySelector(`[name="${n}"]`)?.value ?? '';
+  return {
+    enabled: !!form.querySelector('[name="enabled"]')?.checked,
+    folder_id: v('folder_id').trim(),
+    service_account_json: v('service_account_json').trim(),
+    note: v('note').trim(),
+  };
+}
+
+async function saveStorage(form) {
+  try {
+    await api('/api/storage', { method: 'PUT', body: storagePayload(form) });
+    toast('บันทึกที่เก็บข้อมูลแล้ว');
+    closeModal();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function testStorage() {
+  const form = document.getElementById('storageForm');
+  try {
+    if (form) await api('/api/storage', { method: 'PUT', body: storagePayload(form) });
+    const res = await api('/api/storage/test', { method: 'POST' });
+    if (res.ok) {
+      const folder = res.folder ? ` · โฟลเดอร์: ${res.folder.name || res.folder.id}` : '';
+      toast(`เชื่อมต่อ Google Drive สำเร็จ ✅${folder}`, 'ok');
+    } else {
+      toast('ทดสอบไม่สำเร็จ: ' + (res.error || 'ไม่ทราบสาเหตุ'), 'error');
+    }
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function migrateUploads() {
+  try {
+    const res = await api('/api/storage/migrate-uploads', { method: 'POST' });
+    if (res.ok) {
+      toast(`อัปโหลดขึ้น Drive สำเร็จ ${res.uploaded} ไฟล์ · ล้มเหลว ${res.failed} · เหลือ ${res.remaining}`,
+        res.failed ? 'error' : 'ok');
+      if (res.errors && res.errors.length) console.warn('migrate uploads:', res.errors);
+    } else {
+      toast(res.error || 'อัปโหลดไม่สำเร็จ', 'error');
+    }
+  } catch (e) { toast(e.message, 'error'); }
 }

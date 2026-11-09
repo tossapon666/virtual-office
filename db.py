@@ -11,6 +11,135 @@ BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = Path(os.environ.get("OFFICE_DB") or (BASE_DIR / "office.db"))
 UPLOAD_DIR = Path(os.environ.get("OFFICE_UPLOADS") or (BASE_DIR / "uploads"))
 
+# --- Turso / libSQL (ฐานข้อมูลถาวรบนคลาวด์) -------------------------------
+# ตั้ง TURSO_DATABASE_URL + TURSO_AUTH_TOKEN แล้วแอปจะเก็บข้อมูลบน Turso แทน
+# ไฟล์ office.db ในเครื่อง (ถ้ามี) จะไม่ถูกใช้เป็นแหล่งข้อมูลหลัก
+TURSO_URL = (os.environ.get("TURSO_DATABASE_URL") or os.environ.get("LIBSQL_URL") or "").strip()
+TURSO_TOKEN = (os.environ.get("TURSO_AUTH_TOKEN") or os.environ.get("LIBSQL_AUTH_TOKEN") or "").strip()
+
+
+def using_turso():
+    return bool(TURSO_URL)
+
+
+def db_mode():
+    return "turso" if using_turso() else "local"
+
+
+class Row(dict):
+    """แถวข้อมูลที่รองรับทั้ง row["ชื่อคอลัมน์"] และ row[0] เหมือน sqlite3.Row."""
+
+    __slots__ = ("_values",)
+
+    def __init__(self, keys, values):
+        super().__init__(zip(keys or (), values or ()))
+        self._values = tuple(values or ())
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return self._values[key]
+        return super().__getitem__(key)
+
+    def __repr__(self):
+        return f"Row({dict(self)!r})"
+
+
+def _col_names(cur):
+    desc = getattr(cur, "description", None)
+    if not desc:
+        return []
+    return [d[0] if not isinstance(d, (list, tuple)) else d[0] for d in desc]
+
+
+class _LibsqlCursor:
+    """ห่อ cursor ของ libsql ให้คืน Row แบบ sqlite3.Row."""
+
+    def __init__(self, cur):
+        self._cur = cur
+        self._keys = _col_names(cur)
+
+    def execute(self, sql, params=()):
+        self._cur.execute(sql, params)
+        self._keys = _col_names(self._cur)
+        return self
+
+    def executemany(self, sql, seq):
+        self._cur.executemany(sql, seq)
+        self._keys = _col_names(self._cur)
+        return self
+
+    def _row(self, values):
+        if values is None:
+            return None
+        return Row(self._keys, values)
+
+    def fetchone(self):
+        return self._row(self._cur.fetchone())
+
+    def fetchmany(self, size=1):
+        return [self._row(v) for v in self._cur.fetchmany(size)]
+
+    def fetchall(self):
+        return [self._row(v) for v in self._cur.fetchall()]
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        row = self.fetchone()
+        if row is None:
+            raise StopIteration
+        return row
+
+    @property
+    def lastrowid(self):
+        return self._cur.lastrowid
+
+    @property
+    def rowcount(self):
+        return self._cur.rowcount
+
+    @property
+    def description(self):
+        return self._cur.description
+
+    def close(self):
+        try:
+            self._cur.close()
+        except Exception:
+            pass
+
+
+class _LibsqlConnection:
+    """ห่อ connection ของ libsql ให้ API ใกล้เคียง sqlite3."""
+
+    def __init__(self, conn):
+        self._conn = conn
+
+    def execute(self, sql, params=()):
+        return _LibsqlCursor(self._conn.execute(sql, params))
+
+    def executemany(self, sql, seq):
+        return _LibsqlCursor(self._conn.executemany(sql, seq))
+
+    def executescript(self, script):
+        return self._conn.executescript(script)
+
+    def cursor(self):
+        return _LibsqlCursor(self._conn.cursor())
+
+    def commit(self):
+        return self._conn.commit()
+
+    def rollback(self):
+        return self._conn.rollback()
+
+    def close(self):
+        return self._conn.close()
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -78,6 +207,7 @@ CREATE TABLE IF NOT EXISTS documents (
     mime TEXT DEFAULT '',
     size INTEGER DEFAULT 0,
     notes TEXT DEFAULT '',
+    drive_file_id TEXT DEFAULT '',
     created_at TEXT DEFAULT (datetime('now','localtime'))
 );
 
@@ -173,7 +303,22 @@ WIDGETS = [
 
 
 def connect():
-    conn = sqlite3.connect(DB_PATH)
+    if using_turso():
+        try:
+            import libsql
+        except Exception as exc:  # pragma: no cover - depends on deploy env
+            raise RuntimeError(
+                "ตั้ง TURSO_DATABASE_URL ไว้แต่ยังไม่ได้ติดตั้งไลบรารี libsql "
+                "(pip install libsql) — หรือเอา env ออกเพื่อใช้ SQLite ในเครื่อง"
+            ) from exc
+        conn = libsql.connect(database=TURSO_URL, auth_token=TURSO_TOKEN)
+        wrapped = _LibsqlConnection(conn)
+        try:
+            wrapped.execute("PRAGMA foreign_keys = ON")
+        except Exception:
+            pass
+        return wrapped
+    conn = sqlite3.connect(DB_PATH, timeout=30)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
@@ -183,8 +328,21 @@ def _day(offset):
     return (datetime.now().date() + timedelta(days=offset)).isoformat()
 
 
+def _table_columns(conn, table):
+    try:
+        return [r[1] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]
+    except Exception:
+        try:
+            return [r[1] for r in conn.execute(
+                "SELECT * FROM pragma_table_info(?)", (table,)
+            ).fetchall()]
+        except Exception:
+            return []
+
+
 def init_db():
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    if not using_turso():
+        DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     conn = connect()
     conn.executescript(SCHEMA)
@@ -198,11 +356,15 @@ def init_db():
 
 
 def migrate(conn):
-    """อัปเดต DB เดิมให้มีแผนก/agent ที่เพิ่มใหม่ (idempotent)."""
+    """อัปเดต DB เดิมให้มีแผนก/agent คอลัมน์/ตารางที่เพิ่มใหม่ (idempotent)."""
     # add name_en column
-    cols = [r[1] for r in conn.execute("PRAGMA table_info(departments)").fetchall()]
+    cols = _table_columns(conn, "departments")
     if "name_en" not in cols:
         conn.execute("ALTER TABLE departments ADD COLUMN name_en TEXT DEFAULT ''")
+    # add drive_file_id column (Google Drive storage)
+    doc_cols = _table_columns(conn, "documents")
+    if doc_cols and "drive_file_id" not in doc_cols:
+        conn.execute("ALTER TABLE documents ADD COLUMN drive_file_id TEXT DEFAULT ''")
     en_map = {
         "สำนักเลขา": "Secretariat / Executive Office",
         "ฝ่ายบัญชี": "Accounting",

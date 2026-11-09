@@ -105,6 +105,7 @@ function renderOffice() {
     <div class="head-actions">
       <button class="btn btn-ghost btn-sm" data-action="toggle-layout-edit" title="จัดวางตำแหน่งแผนกได้อิสระ">${(typeof state!=='undefined'&&state.layoutEdit)?'✅ บันทึกเลเอาต์':'↔️ จัดวางอิสระ'}</button>
       <button class="btn btn-ghost btn-sm" data-action="ui-config" title="จัดการหน้าแอป / API สำหรับ AI">🛠️ UI/API</button>
+      <button class="btn btn-ghost btn-sm" data-action="storage-config" title="ที่เก็บข้อมูลถาวร (Turso / Google Drive)">🗄️ ที่เก็บข้อมูล</button>
       <button class="btn btn-soft" data-action="run-agents">✨ สแกนงานอัตโนมัติ</button>
       <button class="btn btn-primary" data-action="add-task">${I.plus} มอบหมายงาน</button>
     </div>

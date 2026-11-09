@@ -342,6 +342,15 @@ async function onDocumentClick(e) {
     case 'ui-config':
       await openUiConfigModal();
       break;
+    case 'storage-config':
+      await openStorageModal();
+      break;
+    case 'storage-test':
+      await testStorage();
+      break;
+    case 'storage-migrate':
+      await migrateUploads();
+      break;
     case 'ui-token-regen': {
       try {
         const res = await api('/api/ui-config/token/regenerate', { method: 'POST' });
@@ -430,6 +439,9 @@ async function onDocumentSubmit(e) {
   } else if (form.id === 'uiConfigForm') {
     e.preventDefault();
     await saveUiConfig(form);
+  } else if (form.id === 'storageForm') {
+    e.preventDefault();
+    await saveStorage(form);
   } else if (form.id === 'integForm') {
     e.preventDefault();
     await saveIntegrations(form);

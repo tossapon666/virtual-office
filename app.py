@@ -1155,8 +1155,9 @@ def api_document_upload():
         return jsonify(error=f"ไม่รองรับไฟล์ประเภท {ext or 'นี้'}"), 400
     stored = uuid.uuid4().hex + ext
     path = UPLOAD_DIR / stored
-    file.save(path)
-    size = path.stat().st_size
+    data = file.read()
+    path.write_bytes(data)
+    size = len(data)
     title = (request.form.get("title") or "").strip() or os.path.splitext(file.filename)[0]
     category = (request.form.get("category") or "ยังไม่จัดหมวด").strip()
     department_id = request.form.get("department_id") or None
@@ -1166,17 +1167,25 @@ def api_document_upload():
         row = conn.execute("SELECT department_id FROM agents WHERE id=?", (agent_id,)).fetchone()
         if row:
             department_id = row["department_id"]
+    drive_file_id = ""
+    drive_warning = ""
+    storage_cfg = get_storage(conn)
+    if storage_ready(storage_cfg):
+        try:
+            drive_file_id = drive_upload_bytes(storage_cfg, stored, data, file.mimetype or "") or ""
+        except Exception as exc:
+            drive_warning = f"อัปโหลดขึ้น Google Drive ไม่สำเร็จ เก็บไว้ในเครื่องแทน: {str(exc)[:240]}"
     cur = conn.execute(
         """INSERT INTO documents
-           (title, category, department_id, agent_id, filename, stored_name, mime, size, notes)
-           VALUES (?,?,?,?,?,?,?,?,?)""",
+           (title, category, department_id, agent_id, filename, stored_name, mime, size, notes, drive_file_id)
+           VALUES (?,?,?,?,?,?,?,?,?,?)""",
         (title, category, department_id, agent_id, file.filename, stored,
-         file.mimetype or "", size, notes),
+         file.mimetype or "", size, notes, drive_file_id),
     )
     log(conn, user["display_name"], "อัปโหลดเอกสาร", f"{title} ({file.filename})")
     conn.commit()
     agent_engine.run_agents(conn, force=True)
-    return jsonify(ok=True, id=cur.lastrowid)
+    return jsonify(ok=True, id=cur.lastrowid, drive=bool(drive_file_id), warning=drive_warning)
 
 
 @app.get("/api/documents/<int:did>/download")
@@ -1186,22 +1195,30 @@ def api_document_download(did):
     doc = conn.execute("SELECT * FROM documents WHERE id=?", (did,)).fetchone()
     if not doc:
         return jsonify(error="ไม่พบเอกสาร"), 404
-    path = (UPLOAD_DIR / os.path.basename(doc["stored_name"])).resolve()
-    if not str(path).startswith(str(UPLOAD_DIR.resolve())) or not path.exists():
+    path = _doc_local_path(doc)
+    if str(path).startswith(str(UPLOAD_DIR.resolve())) and path.exists():
+        return send_file(path, as_attachment=True, download_name=doc["filename"])
+    try:
+        data = _doc_bytes(conn, doc)
+    except Exception as exc:
+        return jsonify(error=f"ดึงไฟล์จาก Google Drive ไม่สำเร็จ: {str(exc)[:240]}"), 502
+    if not data:
         return jsonify(error="ไม่พบไฟล์ในระบบ"), 404
-    return send_file(path, as_attachment=True, download_name=doc["filename"])
+    return send_file(io.BytesIO(data), as_attachment=True, download_name=doc["filename"],
+                     mimetype=doc["mime"] or "application/octet-stream")
 
 
-def _read_spreadsheet_preview(path, ext, max_rows=200, max_cols=30):
-    """อ่านตัวอย่างข้อมูลจาก Excel/CSV สำหรับแสดงผล (โหลดไฟล์)."""
+def _read_spreadsheet_preview(source, ext, max_rows=200, max_cols=30):
+    """อ่านตัวอย่างข้อมูลจาก Excel/CSV (รองรับ path หรือ bytes)."""
     rows = []
     columns = []
     sheet_name = None
     total_rows = 0
     truncated = False
 
+    raw = source if isinstance(source, (bytes, bytearray)) else Path(source).read_bytes()
+
     if ext == ".csv":
-        raw = path.read_bytes()
         text = None
         for enc in ("utf-8-sig", "utf-8", "cp874", "tis-620", "latin1"):
             try:
@@ -1230,7 +1247,7 @@ def _read_spreadsheet_preview(path, ext, max_rows=200, max_cols=30):
         except Exception:
             return {"ok": False, "error": "ระบบยังไม่รองรับการอ่าน .xlsx (ยังไม่ได้ติดตั้ง openpyxl) — กรุณาดาวน์โหลดไฟล์ หรือบันทึกเป็น .csv"}
         try:
-            wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+            wb = openpyxl.load_workbook(io.BytesIO(raw), read_only=True, data_only=True)
             ws = wb.active
             sheet_name = getattr(ws, "title", None)
             it = ws.iter_rows(values_only=True)
@@ -1262,11 +1279,14 @@ def api_document_preview(did):
     doc = conn.execute("SELECT * FROM documents WHERE id=?", (did,)).fetchone()
     if not doc:
         return jsonify(error="ไม่พบเอกสาร"), 404
-    path = (UPLOAD_DIR / os.path.basename(doc["stored_name"])).resolve()
-    if not str(path).startswith(str(UPLOAD_DIR.resolve())) or not path.exists():
+    try:
+        data = _doc_bytes(conn, doc)
+    except Exception as exc:
+        return jsonify(error=f"ดึงไฟล์จาก Google Drive ไม่สำเร็จ: {str(exc)[:240]}"), 502
+    if not data:
         return jsonify(error="ไม่พบไฟล์ในระบบ"), 404
     ext = os.path.splitext(doc["filename"] or "")[1].lower()
-    result = _read_spreadsheet_preview(path, ext)
+    result = _read_spreadsheet_preview(data, ext)
     result["filename"] = doc["filename"]
     result["title"] = doc["title"]
     if not result.get("ok"):
@@ -1282,6 +1302,18 @@ def api_document_delete(did):
     doc = conn.execute("SELECT * FROM documents WHERE id=?", (did,)).fetchone()
     if not doc:
         return jsonify(error="ไม่พบเอกสาร"), 404
+    fid = ""
+    try:
+        fid = (doc["drive_file_id"] or "").strip()
+    except Exception:
+        fid = ""
+    if fid:
+        cfg = get_storage(conn)
+        if storage_ready(cfg):
+            try:
+                drive_delete_file(cfg, fid)
+            except Exception:
+                pass
     path = UPLOAD_DIR / os.path.basename(doc["stored_name"])
     try:
         path.unlink(missing_ok=True)
@@ -1550,6 +1582,165 @@ def save_integrations(conn, dept_id, incoming):
     agent_engine.set_setting(conn, _integ_key(dept_id), json.dumps(current, ensure_ascii=False))
     return current
 
+
+# ---------------------------------------------------------------------------
+# ที่เก็บไฟล์กลาง (Google Drive) — สำหรับ uploads/ ให้อยู่ถาวรนอกเซิร์ฟเวอร์
+# ---------------------------------------------------------------------------
+_STORAGE_KEY = "storage:google_drive"
+_DRIVE_SCOPES = ["https://www.googleapis.com/auth/drive"]
+
+
+def _default_storage():
+    return {"enabled": False, "folder_id": "", "service_account_json": "", "note": ""}
+
+
+def get_storage(conn):
+    base = _default_storage()
+    raw = agent_engine.get_setting(conn, _STORAGE_KEY)
+    if not raw:
+        return base
+    try:
+        data = json.loads(raw) if isinstance(raw, str) else (raw or {})
+    except Exception:
+        return base
+    if not isinstance(data, dict):
+        return base
+    for k in base:
+        if k in data and data[k] is not None:
+            base[k] = data[k] if isinstance(base[k], bool) else str(data[k])[:20000]
+    return base
+
+
+def mask_storage(cfg):
+    out = json.loads(json.dumps(cfg))
+    sa = (cfg.get("service_account_json") or "").strip()
+    out["service_account_json"] = "********" if sa else ""
+    out["service_account_set"] = bool(sa)
+    out["sa_email"] = ""
+    if sa:
+        try:
+            out["sa_email"] = (json.loads(sa) or {}).get("client_email") or ""
+        except Exception:
+            out["sa_email"] = ""
+    return out
+
+
+def save_storage(conn, incoming):
+    current = get_storage(conn)
+    inc = incoming if isinstance(incoming, dict) else {}
+    for k, default in _default_storage().items():
+        if k not in inc:
+            continue
+        val = inc[k]
+        if k == "service_account_json" and val == "********":
+            continue
+        if isinstance(default, bool):
+            current[k] = bool(val)
+        else:
+            current[k] = str(val or "")[:20000]
+    agent_engine.set_setting(conn, _STORAGE_KEY, json.dumps(current, ensure_ascii=False))
+    return current
+
+
+def storage_ready(cfg):
+    return bool(cfg.get("enabled") and (cfg.get("service_account_json") or "").strip())
+
+
+def _drive_service(cfg):
+    sa = (cfg.get("service_account_json") or "").strip()
+    if not sa:
+        raise RuntimeError("ยังไม่ได้ตั้ง Service account JSON")
+    try:
+        info = json.loads(sa)
+    except Exception as exc:
+        raise RuntimeError(f"Service account JSON ไม่ถูกต้อง: {exc}") from exc
+    try:
+        from google.oauth2.service_account import Credentials
+        from googleapiclient.discovery import build
+    except Exception as exc:
+        raise RuntimeError(
+            "เซิร์ฟเวอร์ยังไม่ติดตั้ง google-api-python-client/google-auth — deploy ใหม่ให้ติดตั้ง requirements"
+        ) from exc
+    creds = Credentials.from_service_account_info(info, scopes=_DRIVE_SCOPES)
+    svc = build("drive", "v3", credentials=creds, cache_discovery=False)
+    return svc, info
+
+
+def drive_upload_bytes(cfg, filename, data, mimetype=""):
+    svc, _ = _drive_service(cfg)
+    try:
+        from googleapiclient.http import MediaIoBaseUpload
+    except Exception as exc:
+        raise RuntimeError("ยังไม่ติดตั้ง google-api-python-client") from exc
+    meta = {"name": filename}
+    folder = (cfg.get("folder_id") or "").strip()
+    if folder:
+        meta["parents"] = [folder]
+    media = MediaIoBaseUpload(
+        io.BytesIO(data), mimetype=mimetype or "application/octet-stream", resumable=False
+    )
+    created = svc.files().create(
+        body=meta, media_body=media, fields="id,name,size", supportsAllDrives=True
+    ).execute()
+    return created.get("id")
+
+
+def drive_download_bytes(cfg, file_id):
+    svc, _ = _drive_service(cfg)
+    try:
+        from googleapiclient.http import MediaIoBaseDownload
+    except Exception as exc:
+        raise RuntimeError("ยังไม่ติดตั้ง google-api-python-client") from exc
+    req = svc.files().get_media(fileId=file_id, supportsAllDrives=True)
+    buf = io.BytesIO()
+    downloader = MediaIoBaseDownload(buf, req)
+    done = False
+    while not done:
+        _, done = downloader.next_chunk()
+    return buf.getvalue()
+
+
+def drive_delete_file(cfg, file_id):
+    svc, _ = _drive_service(cfg)
+    svc.files().delete(fileId=file_id, supportsAllDrives=True).execute()
+
+
+def drive_test(cfg):
+    svc, info = _drive_service(cfg)
+    result = {"ok": True, "sa_email": info.get("client_email") or ""}
+    folder = (cfg.get("folder_id") or "").strip()
+    if folder:
+        meta = svc.files().get(
+            fileId=folder, fields="id,name,mimeType", supportsAllDrives=True
+        ).execute()
+        result["folder"] = {"id": meta.get("id"), "name": meta.get("name")}
+    else:
+        about = svc.about().get(fields="user(displayName,emailAddress)").execute()
+        result["user"] = about.get("user", {})
+    return result
+
+
+def _doc_local_path(doc):
+    return (UPLOAD_DIR / os.path.basename(doc["stored_name"])).resolve()
+
+
+def _doc_bytes(conn, doc):
+    """คืน bytes ของเอกสาร: ใช้ไฟล์ในเครื่องก่อน ถ้าไม่มีค่อยดึงจาก Google Drive."""
+    path = _doc_local_path(doc)
+    if str(path).startswith(str(UPLOAD_DIR.resolve())) and path.exists():
+        return path.read_bytes()
+    fid = ""
+    try:
+        fid = (doc["drive_file_id"] or "").strip()
+    except Exception:
+        fid = ""
+    if fid:
+        cfg = get_storage(conn)
+        if storage_ready(cfg):
+            return drive_download_bytes(cfg, fid)
+    return None
+
+
 def send_line_push(token, to, text):
     payload = {"to": to, "messages": [{"type": "text", "text": str(text)[:5000]}]}
     req = urllib.request.Request(
@@ -1706,6 +1897,101 @@ def api_dept_sheets_sync(dept_id):
         log(conn, user["display_name"], "ซิงก์ Google Sheets", f"{dept['name']} ({res.get('rows',0)} แถว)")
         conn.commit()
     return jsonify(res), (200 if res.get("ok") else 400)
+
+@app.get("/api/storage")
+@login_required
+def api_storage_get():
+    conn = get_db()
+    cfg = get_storage(conn)
+    return jsonify(
+        ok=True,
+        storage=mask_storage(cfg),
+        db={"mode": database.db_mode(), "persistent": database.using_turso()},
+    )
+
+
+@app.put("/api/storage")
+@login_required
+def api_storage_put():
+    conn = get_db()
+    user = current_user(conn)
+    data = request.get_json(silent=True) or {}
+    cfg = save_storage(conn, data)
+    log(conn, user["display_name"], "อัปเดตที่เก็บไฟล์", "Google Drive" if cfg.get("enabled") else "ปิดใช้งาน")
+    conn.commit()
+    return jsonify(ok=True, storage=mask_storage(cfg))
+
+
+@app.post("/api/storage/test")
+@login_required
+def api_storage_test():
+    conn = get_db()
+    cfg = get_storage(conn)
+    if not storage_ready(cfg):
+        return jsonify(ok=False, error="ยังไม่ได้เปิดใช้งานหรือใส่ Service account JSON"), 400
+    try:
+        res = drive_test(cfg)
+        return jsonify(res)
+    except Exception as exc:
+        return jsonify(ok=False, error=str(exc)[:500]), 400
+
+
+@app.post("/api/storage/migrate-uploads")
+@login_required
+def api_storage_migrate_uploads():
+    conn = get_db()
+    user = current_user(conn)
+    cfg = get_storage(conn)
+    if not storage_ready(cfg):
+        return jsonify(ok=False, error="ยังไม่ได้เปิดใช้งานหรือใส่ Service account JSON"), 400
+    limit = 100
+    docs = conn.execute(
+        "SELECT * FROM documents WHERE COALESCE(drive_file_id,'')='' ORDER BY id LIMIT ?",
+        (limit,),
+    ).fetchall()
+    uploaded = 0
+    failed = 0
+    errors = []
+    for doc in docs:
+        path = _doc_local_path(doc)
+        if not (str(path).startswith(str(UPLOAD_DIR.resolve())) and path.exists()):
+            failed += 1
+            errors.append(f"{doc['title']}: ไม่พบไฟล์ในเครื่อง (ข้าม)")
+            continue
+        try:
+            fid = drive_upload_bytes(cfg, doc["stored_name"] or doc["filename"], path.read_bytes(), doc["mime"])
+            conn.execute("UPDATE documents SET drive_file_id=? WHERE id=?", (fid, doc["id"]))
+            uploaded += 1
+        except Exception as exc:
+            failed += 1
+            errors.append(f"{doc['title']}: {str(exc)[:160]}")
+    remaining = conn.execute(
+        "SELECT COUNT(*) c FROM documents WHERE COALESCE(drive_file_id,'')=''"
+    ).fetchone()["c"]
+    log(conn, user["display_name"], "อัปโหลดไฟล์ขึ้น Google Drive", f"สำเร็จ {uploaded} / ล้มเหลว {failed}")
+    conn.commit()
+    return jsonify(ok=True, uploaded=uploaded, failed=failed, remaining=remaining, errors=errors[:10])
+
+
+@app.get("/api/system/status")
+@login_required
+def api_system_status():
+    conn = get_db()
+    cfg = get_storage(conn)
+    return jsonify(
+        ok=True,
+        db={
+            "mode": database.db_mode(),
+            "persistent": database.using_turso(),
+            "label": "Turso (ถาวร)" if database.using_turso() else "SQLite ในเครื่อง/ดิสก์ชั่วคราว",
+        },
+        storage={
+            "enabled": bool(cfg.get("enabled")),
+            "ready": storage_ready(cfg),
+            "folder_id": cfg.get("folder_id") or "",
+        },
+    )
+
 
 @app.post("/api/integrations/line/webhook/<int:dept_id>")
 def api_line_webhook(dept_id):
