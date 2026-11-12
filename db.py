@@ -52,20 +52,33 @@ def _col_names(cur):
 
 
 class _LibsqlCursor:
-    """ห่อ cursor ของ libsql ให้คืน Row แบบ sqlite3.Row."""
+    """ห่อ cursor ของ libsql ให้คืน Row และค่าสถานะคงที่เหมือน sqlite3.
+
+    libsql อัปเดต lastrowid/rowcount ของ Cursor ตามคำสั่งล่าสุดทั้ง connection
+    ต่างจาก sqlite3 ที่ผูกกับคำสั่งของ cursor นั้น จึงต้องจับค่าไว้ตอน execute
+    """
 
     def __init__(self, cur):
         self._cur = cur
         self._keys = _col_names(cur)
+        self._lastrowid = getattr(cur, "lastrowid", None)
+        self._rowcount = getattr(cur, "rowcount", -1)
+        self._description = getattr(cur, "description", None)
+
+    def _snapshot(self):
+        self._keys = _col_names(self._cur)
+        self._lastrowid = getattr(self._cur, "lastrowid", None)
+        self._rowcount = getattr(self._cur, "rowcount", -1)
+        self._description = getattr(self._cur, "description", None)
 
     def execute(self, sql, params=()):
         self._cur.execute(sql, params)
-        self._keys = _col_names(self._cur)
+        self._snapshot()
         return self
 
     def executemany(self, sql, seq):
         self._cur.executemany(sql, seq)
-        self._keys = _col_names(self._cur)
+        self._snapshot()
         return self
 
     def _row(self, values):
@@ -93,15 +106,15 @@ class _LibsqlCursor:
 
     @property
     def lastrowid(self):
-        return self._cur.lastrowid
+        return self._lastrowid
 
     @property
     def rowcount(self):
-        return self._cur.rowcount
+        return self._rowcount
 
     @property
     def description(self):
-        return self._cur.description
+        return self._description
 
     def close(self):
         try:
