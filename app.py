@@ -356,8 +356,9 @@ def q_notifications(conn, limit=60):
 
 
 def q_activity(conn, limit=80):
+    # libsql บางรุ่นคืนชื่อ action เป็น ACTION; alias ให้ JSON คง key เดิม
     return rows(conn.execute(
-        "SELECT * FROM activity ORDER BY id DESC LIMIT ?", (limit,)
+        "SELECT id, actor, action AS action, detail, created_at FROM activity ORDER BY id DESC LIMIT ?", (limit,)
     ).fetchall())
 
 
@@ -1461,7 +1462,7 @@ def api_ui_config_token_regen():
     user = current_user(conn)
     token = "vo_" + uuid.uuid4().hex + uuid.uuid4().hex
     _ui_set_setting(conn, "ui_api_token", token)
-    log(conn, user["display_name"], "????? API token ????", "UI config token")
+    log(conn, user["display_name"], "สร้าง API token ใหม่", "UI config token")
     conn.commit()
     return jsonify(ok=True, token=token)
 
@@ -1481,7 +1482,9 @@ def api_backup():
         "tasks": q_tasks(conn),
         "documents": q_documents(conn),
         "activity": q_activity(conn, 1000),
-        "settings": rows(conn.execute("SELECT * FROM settings").fetchall()),
+        "settings": rows(conn.execute(
+            "SELECT key AS key, value FROM settings ORDER BY key"
+        ).fetchall()),
     }
     body = json.dumps(payload, ensure_ascii=False, indent=2)
     return app.response_class(

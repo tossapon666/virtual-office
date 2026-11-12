@@ -107,9 +107,10 @@ def main():
         cols, rows = plan[table]
         if not rows:
             continue
-        # ใช้เฉพาะคอลัมน์ที่มีอยู่จริงทั้งสองฝั่ง
+        # ใช้เฉพาะคอลัมน์ที่มีอยู่จริงทั้งสองฝั่ง (libsql อาจคืนชื่อ column พิมพ์ใหญ่)
         tcols = [r[1] for r in target.execute(f"PRAGMA table_info({table})").fetchall()]
-        use = [c for c in cols if c in tcols]
+        target_names = {str(c).casefold() for c in tcols}
+        use = [c for c in cols if c.casefold() in target_names]
         if not use:
             print(f"  ข้าม {table}: ไม่มีคอลัมน์ที่ตรงกัน")
             continue

@@ -29,16 +29,28 @@ def db_mode():
 class Row(dict):
     """แถวข้อมูลที่รองรับทั้ง row["ชื่อคอลัมน์"] และ row[0] เหมือน sqlite3.Row."""
 
-    __slots__ = ("_values",)
+    __slots__ = ("_values", "_folded")
 
     def __init__(self, keys, values):
         super().__init__(zip(keys or (), values or ()))
         self._values = tuple(values or ())
+        self._folded = {k.casefold(): k for k in self if isinstance(k, str)}
+
+    def _key(self, key):
+        if isinstance(key, str):
+            return self._folded.get(key.casefold(), key)
+        return key
 
     def __getitem__(self, key):
         if isinstance(key, int):
             return self._values[key]
-        return super().__getitem__(key)
+        return super().__getitem__(self._key(key))
+
+    def get(self, key, default=None):
+        return super().get(self._key(key), default)
+
+    def __contains__(self, key):
+        return super().__contains__(self._key(key))
 
     def __repr__(self):
         return f"Row({dict(self)!r})"
