@@ -92,7 +92,7 @@ set AI_MODEL=gpt-4o-mini
 
 เมื่อออนไลน์ (แนะนำ):
 - **ฐานข้อมูล → Turso** ตั้ง `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN` แล้วแอปจะใช้ libSQL แทน `office.db` อัตโนมัติ
-- **ไฟล์แนบ → Google Drive** ตั้งค่าที่เมนู **🗄️ ที่เก็บข้อมูล** (service account JSON + Folder ID)
+- **ไฟล์แนบ → Google Drive** ตั้งค่าที่เมนู **🗄️ ที่เก็บข้อมูล** (credentials JSON แบบ `type: authorized_user` + Folder ID — service account ไม่มีโควตาที่เก็บไฟล์)
 - ดูขั้นตอนทั้งหมดใน [`DEPLOY_OPTIONS.md`](DEPLOY_OPTIONS.md)
 - ตรวจสถานะได้ที่ `GET /api/system/status` หรือดู badge ในเมนู **🗄️ ที่เก็บข้อมูล**
 

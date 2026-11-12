@@ -40,9 +40,10 @@ python tools\migrate_to_turso.py --sqlite office.db --wipe
 ```
 
 ### 5. ตั้ง Google Drive
-- Google Cloud → เปิด Drive API → Service account → JSON key
-- แชร์โฟลเดอร์ Drive ให้ `client_email` เป็น Editor
-- ในแอป → **🗄️ ที่เก็บข้อมูล** → วาง JSON + Folder ID → บันทึก → ทดสอบ → อัปโหลดไฟล์เดิม
+- Google Cloud → เปิด Drive API → **OAuth client (Desktop)** → ทำ consent → ได้ JSON `type: authorized_user`
+- ใช้ OAuth ของบัญชีคุณเอง (service account ไม่มีโควตาที่เก็บไฟล์บน My Drive)
+- ในแอป → **🗄️ ที่เก็บข้อมูล** → วาง JSON (+ Folder ID ถ้ามี) → บันทึก → ทดสอบ → อัปโหลดไฟล์เดิม
+- รายละเอียดทั้งหมดดู [`DEPLOY_OPTIONS.md`](DEPLOY_OPTIONS.md) ข้อ 4
 
 ### 6. กัน sleep
 - `.github/workflows/keepalive.yml` ping `/health` ทุก 5 นาที
@@ -55,4 +56,4 @@ python tools\migrate_to_turso.py --sqlite office.db --wipe
 
 ## ความปลอดภัย
 - เปลี่ยนรหัสผ่าน `admin123` ทันทีหลังออนไลน์
-- อย่าเผย `OFFICE_SECRET`, `TURSO_AUTH_TOKEN`, service account JSON, API token
+- อย่าเผย `OFFICE_SECRET`, `TURSO_AUTH_TOKEN`, OAuth token JSON, API token

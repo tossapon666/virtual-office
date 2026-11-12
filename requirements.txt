@@ -3,5 +3,6 @@ waitress>=3.0
 openpyxl>=3.1
 gspread>=6.0
 google-auth>=2.0
+google-auth-oauthlib>=1.0
 google-api-python-client>=2.100
 libsql>=0.1.0

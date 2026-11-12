@@ -547,8 +547,14 @@ async function openStorageModal() {
   const db = (status && status.db) || { mode: 'local', label: 'ไม่ทราบสถานะ', persistent: false };
   const S = storage || {
     enabled: false, folder_id: '', service_account_json: '',
-    service_account_set: false, sa_email: '', note: '',
+    service_account_set: false, sa_email: '', account_email: '', credential_type: '', note: '',
   };
+  const credType = (S.credential_type || '').toLowerCase();
+  const credLabel = credType === 'authorized_user'
+    ? `✅ OAuth ผู้ใช้${S.account_email ? ` · ${S.account_email}` : ''}`
+    : (credType === 'service_account'
+        ? `⚠️ Service account${S.sa_email ? ` · ${S.sa_email}` : ''} (อาจอัปโหลดไม่ได้เพราะไม่มีโควตาที่เก็บ)`
+        : '');
   const dbBadge = db.persistent
     ? '<span class="pill" style="background:rgba(34,197,94,.16);color:#16a34a">✅ Turso (ถาวร)</span>'
     : '<span class="pill" style="background:rgba(245,158,11,.16);color:#d97706">⚠️ SQLite (ชั่วคราว)</span>';
@@ -573,13 +579,16 @@ async function openStorageModal() {
         <div class="field span-2">
           <label>Google Drive Folder ID (ทางเลือก)</label>
           <input name="folder_id" value="${esc(S.folder_id || '')}" placeholder="เช่น 1AbCdEfGhIjKlMnOpQrStUvWxYz">
-          <div class="hint">สร้างโฟลเดอร์ใน Drive แล้วแชร์ให้ <code>client_email</code> ของ service account เป็น Editor · ถ้าเว้นว่างจะเก็บที่ My Drive ของ service account</div>
+          <div class="hint">สร้างโฟลเดอร์ใน Drive แล้วคัดลอก ID จาก URL · แนะนำให้ใช้บัญชี Google ของคุณเอง (OAuth) แล้วปล่อยให้แอปสร้าง/ใช้โฟลเดอร์ <code>Virtual Office Uploads</code> · ถ้าเว้นว่างจะเก็บที่ My Drive ของบัญชีที่เชื่อมต่อ</div>
         </div>
 
         <div class="field span-2">
-          <label>Service account JSON ${S.service_account_set ? `(ตั้งค่าแล้ว: ${esc(S.sa_email || '')})` : ''}</label>
-          <textarea name="service_account_json" style="min-height:170px;font-family:monospace;font-size:11px;line-height:1.4" placeholder='วาง JSON ทั้งก้อน เช่น {"type":"service_account", ...}'>${S.service_account_set ? '********' : ''}</textarea>
-          <div class="hint">วางเฉพาะเมื่อต้องการเปลี่ยน · ค่า <code>********</code> หมายถึงใช้ค่าเดิมที่บันทึกไว้</div>
+          <label>Google Drive credentials JSON ${S.service_account_set ? `(ตั้งค่าแล้ว${credLabel ? ` — ${esc(credLabel)}` : ''})` : ''}</label>
+          <textarea name="service_account_json" style="min-height:170px;font-family:monospace;font-size:11px;line-height:1.4" placeholder='วาง JSON ทั้งก้อน — แนะนำ {"type":"authorized_user", "client_id":..., "client_secret":..., "refresh_token":...}'>${S.service_account_set ? '********' : ''}</textarea>
+          <div class="hint">
+            <b>แนะนำ:</b> ใช้ OAuth ของบัญชีคุณเอง (<code>"type":"authorized_user"</code>) เพราะ service account ไม่มีโควตาที่เก็บไฟล์บน Drive ส่วนตัว (จะได้ error <code>Service Accounts do not have storage quota</code>)<br>
+            วิธีสร้าง: เปิด Drive API → สร้าง OAuth client (Desktop) → ทำ consent → แลก refresh token (ดูขั้นตอนใน <code>DEPLOY_OPTIONS.md</code>) · ค่า <code>********</code> หมายถึงใช้ค่าเดิมที่บันทึกไว้
+          </div>
         </div>
 
         <div class="field span-2">
@@ -628,7 +637,10 @@ async function testStorage() {
     const res = await api('/api/storage/test', { method: 'POST' });
     if (res.ok) {
       const folder = res.folder ? ` · โฟลเดอร์: ${res.folder.name || res.folder.id}` : '';
-      toast(`เชื่อมต่อ Google Drive สำเร็จ ✅${folder}`, 'ok');
+      const who = res.credential_type === 'authorized_user'
+        ? `OAuth${res.account_email ? ` (${res.account_email})` : ''}`
+        : (res.sa_email ? `Service account (${res.sa_email})` : '');
+      toast(`เชื่อมต่อ Google Drive สำเร็จ ✅${who ? ` · ${who}` : ''}${folder}`, 'ok');
     } else {
       toast('ทดสอบไม่สำเร็จ: ' + (res.error || 'ไม่ทราบสาเหตุ'), 'error');
     }

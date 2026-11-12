@@ -415,6 +415,109 @@ def login():
     return render_template("login.html")
 
 
+_LEGAL_STYLE = """
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 32px 18px 64px; background: #05070d; color: #d7e3f4;
+           font-family: 'Segoe UI', 'Noto Sans Thai', system-ui, sans-serif; line-height: 1.75; }
+    main { max-width: 780px; margin: 0 auto; background: rgba(12,20,36,.82);
+           border: 1px solid rgba(56,189,248,.28); border-radius: 18px; padding: 30px 28px;
+           box-shadow: 0 0 40px rgba(56,189,248,.12); }
+    h1 { font-size: 24px; margin: 0 0 4px; color: #7dd3fc; letter-spacing: .5px; }
+    h2 { font-size: 17px; margin: 26px 0 8px; color: #bae6fd; }
+    p, li { font-size: 14.5px; color: #c3d2e6; }
+    a { color: #38bdf8; }
+    .muted { color: #7c8ba1; font-size: 12.5px; }
+    .nav { margin-bottom: 18px; display: flex; gap: 16px; flex-wrap: wrap; }
+    ul { padding-left: 20px; }
+    code { background: rgba(56,189,248,.12); padding: 1px 6px; border-radius: 6px; font-size: 13px; }
+"""
+
+
+def _legal_page(title, body_html):
+    html = f"""<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{title} · Virtual Office</title>
+  <style>{_LEGAL_STYLE}</style>
+</head>
+<body>
+  <main>
+    <nav class="nav">
+      <a href="/login">← Virtual Office</a>
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/terms">Terms of Service</a>
+    </nav>
+    <h1>{title}</h1>
+    {body_html}
+    <p class="muted">อัปเดตล่าสุด: 12 พฤศจิกายน 2026 · Last updated: November 12, 2026</p>
+  </main>
+</body>
+</html>"""
+    return app.response_class(html, mimetype="text/html")
+
+
+@app.get("/privacy")
+def privacy_policy():
+    return _legal_page("นโยบายความเป็นส่วนตัว · Privacy Policy", """
+    <p>Virtual Office เป็นแอปพลิเคชันออฟฟิศเสมือนสำหรับจัดการงาน เอกสาร และการสื่อสารภายในทีม
+    เอกสารนี้ explains what data the app stores and how it is used.</p>
+
+    <h2>ข้อมูลที่เราเก็บ · Data we store</h2>
+    <ul>
+      <li>ข้อมูลบัญชีผู้ใช้ (ชื่อผู้ใช้ ชื่อที่แสดง และรหัสผ่านที่เข้ารหัสแล้ว)</li>
+      <li>ข้อมูลงาน ปฏิทิน เอกสารที่อัปโหลด การแจ้งเตือน และบันทึกกิจกรรมภายในออฟฟิศ</li>
+      <li>การตั้งค่าการเชื่อมต่อ เช่น LINE, Google Sheets และ Google Drive (เก็บในฐานข้อมูลของแอป)</li>
+    </ul>
+
+    <h2>การเชื่อมต่อกับ Google · Google integration</h2>
+    <p>หากคุณเชื่อมต่อ Google Drive แอปจะใช้สิทธิ์ <code>drive.file</code> เพื่อสร้างและจัดการเฉพาะไฟล์ที่แอปสร้างขึ้น
+    (ไฟล์ที่อัปโหลดผ่าน Virtual Office) เราไม่เข้าถึงไฟล์อื่นใน Google Drive ของคุณ
+    และไม่นำข้อมูลไปขายหรือแชร์ให้บุคคลที่สาม</p>
+
+    <h2>ที่เก็บข้อมูล · Where data lives</h2>
+    <p>ฐานข้อมูลอาจเก็บไว้บน Turso (libSQL) และไฟล์อัปโหลดอาจเก็บไว้บน Google Drive ของเจ้าของบัญชี
+    เพื่อให้ข้อมูลอยู่ถาวรแม้เซิร์ฟเวอร์หยุดทำงาน</p>
+
+    <h2>การลบข้อมูล · Deleting your data</h2>
+    <p>คุณสามารถลบเอกสาร งาน และข้อมูลอื่น ๆ ได้จากในแอป หรือลบไฟล์ใน Google Drive ของคุณได้โดยตรง
+    หากต้องการลบบัญชีและข้อมูลทั้งหมด กรุณาติดต่อผู้ดูแลระบบ</p>
+
+    <h2>ติดต่อ · Contact</h2>
+    <p>อีเมล: <a href="mailto:torijacky666@gmail.com">torijacky666@gmail.com</a></p>
+    """)
+
+
+@app.get("/terms")
+def terms_of_service():
+    return _legal_page("ข้อกำหนดการให้บริการ · Terms of Service", """
+    <p>การใช้งาน Virtual Office ถือว่าคุณยอมรับข้อกำหนดเหล่านี้ · By using Virtual Office you agree to these terms.</p>
+
+    <h2>การใช้งาน · Use of the service</h2>
+    <ul>
+      <li>แอปนี้มีไว้สำหรับจัดการงานและเอกสารภายในองค์กรของคุณ</li>
+      <li>คุณต้องรักษาความลับของชื่อผู้ใช้ รหัสผ่าน และข้อมูลเชื่อมต่อต่าง ๆ</li>
+      <li>ห้ามใช้แอปเพื่อกระทำผิดกฎหมายหรือละเมิดสิทธิ์ของผู้อื่น</li>
+    </ul>
+
+    <h2>บัญชีและความปลอดภัย · Accounts & security</h2>
+    <p>ผู้ดูแลระบบเป็นผู้สร้างและจัดการบัญชี ผู้ใช้ควรเปลี่ยนรหัสผ่านเริ่มต้นทันทีหลังเข้าใช้งานครั้งแรก</p>
+
+    <h2>บริการของบุคคลที่สาม · Third-party services</h2>
+    <p>แอปอาจเชื่อมต่อกับ LINE, Google Sheets และ Google Drive ตามที่คุณตั้งค่า
+    การใช้งานบริการเหล่านั้นเป็นไปตามข้อกำหนดของเจ้าของบริการนั้น ๆ</p>
+
+    <h2>ความรับผิดชอบ · Liability</h2>
+    <p>แอปให้บริการ “ตามสภาพ” (as-is) เราไม่รับประกันว่าบริการจะไม่มีข้อผิดพลาดหรือหยุดชะงัก
+    และไม่รับผิดชอบต่อความเสียหายที่เกิดจากการใช้งาน เว้นแต่กฎหมายกำหนด</p>
+
+    <h2>ติดต่อ · Contact</h2>
+    <p>อีเมล: <a href="mailto:torijacky666@gmail.com">torijacky666@gmail.com</a></p>
+    """)
+
+
 @app.get("/")
 @login_required
 def index():
@@ -1620,9 +1723,14 @@ def mask_storage(cfg):
     out["service_account_json"] = "********" if sa else ""
     out["service_account_set"] = bool(sa)
     out["sa_email"] = ""
+    out["account_email"] = ""
+    out["credential_type"] = ""
     if sa:
         try:
-            out["sa_email"] = (json.loads(sa) or {}).get("client_email") or ""
+            info = json.loads(sa) or {}
+            out["credential_type"] = info.get("type") or ""
+            out["sa_email"] = info.get("client_email") or ""
+            out["account_email"] = info.get("account") or ""
         except Exception:
             out["sa_email"] = ""
     return out
@@ -1652,19 +1760,31 @@ def storage_ready(cfg):
 def _drive_service(cfg):
     sa = (cfg.get("service_account_json") or "").strip()
     if not sa:
-        raise RuntimeError("ยังไม่ได้ตั้ง Service account JSON")
+        raise RuntimeError("ยังไม่ได้ตั้ง Google Drive credentials JSON")
     try:
         info = json.loads(sa)
     except Exception as exc:
-        raise RuntimeError(f"Service account JSON ไม่ถูกต้อง: {exc}") from exc
+        raise RuntimeError(f"Google Drive credentials JSON ไม่ถูกต้อง: {exc}") from exc
     try:
-        from google.oauth2.service_account import Credentials
         from googleapiclient.discovery import build
     except Exception as exc:
         raise RuntimeError(
             "เซิร์ฟเวอร์ยังไม่ติดตั้ง google-api-python-client/google-auth — deploy ใหม่ให้ติดตั้ง requirements"
         ) from exc
-    creds = Credentials.from_service_account_info(info, scopes=_DRIVE_SCOPES)
+    if (info or {}).get("type") == "authorized_user":
+        # OAuth ของผู้ใช้เอง (แนะนำ): service account ไม่มีโควตาที่เก็บไฟล์บน Drive ส่วนตัว
+        try:
+            from google.oauth2.credentials import Credentials
+        except Exception as exc:
+            raise RuntimeError("เซิร์ฟเวอร์ยังไม่ติดตั้ง google-auth") from exc
+        scopes = info.get("scopes") or ["https://www.googleapis.com/auth/drive.file"]
+        creds = Credentials.from_authorized_user_info(info, scopes=scopes)
+    else:
+        try:
+            from google.oauth2.service_account import Credentials
+        except Exception as exc:
+            raise RuntimeError("เซิร์ฟเวอร์ยังไม่ติดตั้ง google-auth") from exc
+        creds = Credentials.from_service_account_info(info, scopes=_DRIVE_SCOPES)
     svc = build("drive", "v3", credentials=creds, cache_discovery=False)
     return svc, info
 
@@ -1710,7 +1830,9 @@ def drive_delete_file(cfg, file_id):
 
 def drive_test(cfg):
     svc, info = _drive_service(cfg)
-    result = {"ok": True, "sa_email": info.get("client_email") or ""}
+    result = {"ok": True, "credential_type": (info or {}).get("type") or "service_account"}
+    result["sa_email"] = (info or {}).get("client_email") or ""
+    result["account_email"] = (info or {}).get("account") or ""
     folder = (cfg.get("folder_id") or "").strip()
     if folder:
         meta = svc.files().get(
@@ -1931,7 +2053,7 @@ def api_storage_test():
     conn = get_db()
     cfg = get_storage(conn)
     if not storage_ready(cfg):
-        return jsonify(ok=False, error="ยังไม่ได้เปิดใช้งานหรือใส่ Service account JSON"), 400
+        return jsonify(ok=False, error="ยังไม่ได้เปิดใช้งานหรือใส่ Google Drive credentials JSON"), 400
     try:
         res = drive_test(cfg)
         return jsonify(res)
@@ -1946,7 +2068,7 @@ def api_storage_migrate_uploads():
     user = current_user(conn)
     cfg = get_storage(conn)
     if not storage_ready(cfg):
-        return jsonify(ok=False, error="ยังไม่ได้เปิดใช้งานหรือใส่ Service account JSON"), 400
+        return jsonify(ok=False, error="ยังไม่ได้เปิดใช้งานหรือใส่ Google Drive credentials JSON"), 400
     limit = 100
     docs = conn.execute(
         "SELECT * FROM documents WHERE COALESCE(drive_file_id,'')='' ORDER BY id LIMIT ?",

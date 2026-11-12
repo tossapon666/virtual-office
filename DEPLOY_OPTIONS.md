@@ -13,7 +13,7 @@ Render free tier มี 2 ข้อจำกัด:
 | ส่วน | เก็บที่ | ผล |
 |---|---|---|
 | ฐานข้อมูล | **Turso** (libSQL cloud, free) | ข้อมูลงาน/แผนก/agent/settings อยู่ถาวร |
-| ไฟล์อัปโหลด | **Google Drive** (service account, 15GB ฟรี) | ไฟล์อยู่ถาวร ดาวน์โหลด/พรีวิวได้แม้เซิร์ฟเวอร์รีสตาร์ท |
+| ไฟล์อัปโหลด | **Google Drive** (OAuth ของบัญชีคุณเอง, 15GB ฟรี) | ไฟล์อยู่ถาวร ดาวน์โหลด/พรีวิวได้แม้เซิร์ฟเวอร์รีสตาร์ท |
 | กัน sleep | **GitHub Actions cron** ping `/health` ทุก 5 นาที | ลด cold start (ไม่ใช่ always-on 100%) |
 
 ---
@@ -67,14 +67,52 @@ python tools\migrate_to_turso.py --sqlite office.db --wipe      # ย้าย�
 
 ## 4) ตั้ง Google Drive สำหรับไฟล์อัปโหลด
 
-1. ไปที่ https://console.cloud.google.com → สร้าง project
+> **สำคัญ:** ต้องใช้ **OAuth ของบัญชีผู้ใช้** (`"type": "authorized_user"`) ไม่ใช่ service account
+> เพราะ service account ไม่มีโควตาที่เก็บไฟล์บน My Drive (จะได้ error `403 Service Accounts do not have storage quota`)
+> แอปยังรองรับ service account แต่ใช้ได้เฉพาะกรณีมี Shared Drive ที่ให้สิทธิ์ไว้
+
+### 4.1 เปิด API และสร้าง OAuth client
+
+1. ไปที่ https://console.cloud.google.com → สร้าง project (เช่น `virtual-office-drive`)
 2. **APIs & Services → Library** → เปิด **Google Drive API**
-3. **APIs & Services → Credentials → Create credentials → Service account**
-4. สร้าง key: เลือก service account → **Keys → Add key → JSON** → ดาวน์โหลดไฟล์ JSON
-5. คัดลอก `client_email` ใน JSON (เช่น `xxx@yyy.iam.gserviceaccount.com`)
-6. ใน Google Drive: สร้างโฟลเดอร์ → **Share** → ใส่ `client_email` → **Editor** → คัดลอก **Folder ID** จาก URL
-7. ในแอป: เมนู **🗄️ ที่เก็บข้อมูล** → ติ๊กเปิดใช้งาน → วาง JSON + Folder ID → **บันทึก** → **🔍 ทดสอบการเชื่อมต่อ Drive**
-8. กด **⬆️ อัปโหลดไฟล์เดิมขึ้น Drive** เพื่อย้ายไฟล์เก่า (ทำซ้ำได้ ครั้งละ ≤100 ไฟล์)
+3. **Google Auth Platform** → ตั้ง Branding (ชื่อแอป, อีเมล, โดเมนที่อนุญาต, privacy/terms URL)
+4. **Clients → Create client → Desktop app** → ดาวน์โหลด JSON (เก็บเป็นความลับ)
+5. **Audience → Publish app** (ถ้าปล่อยเป็น Testing refresh token จะหมดอายุใน 7 วัน)
+
+### 4.2 แลก refresh token (ครั้งเดียว)
+
+รันสคริปต์ OAuth บนเครื่องนี้ (ติดตั้ง `pip install google-auth-oauthlib google-api-python-client`):
+
+```powershell
+pip install google-auth-oauthlib google-api-python-client
+python tools\drive_oauth.py --client .local\secrets\oauth-client.json --out .local\secrets\drive-oauth.json
+```
+
+สคริปต์จะพิมพ์ URL ให้เปิดในเบราว์เซอร์ → เลือกบัญชี → อนุญาต
+จากนั้นจะบันทึกไฟล์ token และสร้าง/ตรวจโฟลเดอร์ `Virtual Office Uploads` ให้อัตโนมัติ
+
+```json
+{
+  "type": "authorized_user",
+  "client_id": "...",
+  "client_secret": "...",
+  "refresh_token": "...",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "scopes": ["https://www.googleapis.com/auth/drive.file"],
+  "account": "you@gmail.com"
+}
+```
+
+> scope `drive.file` อนุญาตเฉพาะไฟล์ที่แอปสร้าง — แอปจะไม่เห็นไฟล์อื่นใน Drive ของคุณ
+
+### 4.3 ตั้งค่าในแอป
+
+1. ล็อกอิน → เมนู **🗄️ ที่เก็บข้อมูล**
+2. ติ๊ก **เปิดใช้งาน Google Drive**
+3. วาง **Folder ID** (ถ้ามี) — ถ้าเว้นว่าง แอปจะใช้/สร้างโฟลเดอร์ `Virtual Office Uploads` ใน My Drive
+4. วาง **credentials JSON** (`type: authorized_user`) → **บันทึก**
+5. กด **🔍 ทดสอบการเชื่อมต่อ Drive** → ต้องเห็น `OAuth (อีเมล)` และชื่อโฟลเดอร์
+6. กด **⬆️ อัปโหลดไฟล์เดิมขึ้น Drive** เพื่อย้ายไฟล์เก่า (ทำซ้ำได้ ครั้งละ ≤100 ไฟล์)
 
 > ค่า JSON ถูก mask เป็น `********` ใน UI/API — เก็บเป็นความลับ
 
@@ -107,5 +145,5 @@ python tools\migrate_to_turso.py --sqlite office.db --wipe      # ย้าย�
 
 ## ความปลอดภัย
 - เปลี่ยนรหัสผ่าน `admin` จาก `admin123` ทันทีหลังออนไลน์
-- เก็บ `OFFICE_SECRET`, `TURSO_AUTH_TOKEN`, service account JSON และ API token (`🛠️ UI/API`) เป็นความลับ
+- เก็บ `OFFICE_SECRET`, `TURSO_AUTH_TOKEN`, OAuth client/token JSON และ API token (`🛠️ UI/API`) เป็นความลับ
 - อย่า commit `office.db`, `uploads/`, `.secret_key`, `.env`
